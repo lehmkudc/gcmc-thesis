@@ -495,7 +495,7 @@ def mc_run():
         if( (j)%floor(N_prod/10) == 0 ):
             #print( j/N_prod )
             #print(j/N_prod, Nacc/Natt, Aacc/Aatt, Racc/Ratt)
-            print(j, "yco: ", round(Ncov[j]/(Ncov[j]+Nmev[j]), 3 ), "N: ", round( Ncov[j] + Nmev[j] ), "P: ", round( Pv[j]*10, 2), "En: ", round( Env[j],2 ) )
+            #print(j, "yco: ", round(Ncov[j]/(Ncov[j]+Nmev[j]), 3 ), "N: ", round( Ncov[j] + Nmev[j] ), "P: ", round( Pv[j]*10, 2), "En: ", round( Env[j],2 ) )
             Natt = 0; Nacc=0; Aatt=0; Aacc=0; Ratt=0;Racc=0 
         
     #plt.plot( Pv )
@@ -627,7 +627,7 @@ def PR_Fugacity_Single( P_res, T, species):
 e_me = 147.9 # eps over kb[K]
 s_me = 3.73 # sigma [A]
 
-#e_co = 257.8
+#e_co = 257.8 # Old values that created significant drift
 #s_co = 3.71
 
 e_co = 242.0 # eps over kb[K]

@@ -14,7 +14,7 @@ def load_co( Nco, s_box, N_max ):
     for i in range(Nco ):
         Xco[i] = random()*s_box #[A]
         Yco[i] = random()*s_box #[A]
-        Zco[i] = random()*s_box #[A]
+        Zco[i] = random()*W #[A]
     return Xco, Yco, Zco   
 
 def load_me( Nme, s_box, N_max ):
@@ -23,7 +23,7 @@ def load_me( Nme, s_box, N_max ):
     for i in range( Nme ):
         Xme[i] = random()*s_box #[A]
         Yme[i] = random()*s_box #[A]
-        Zme[i] = random()*s_box #[A]
+        Zme[i] = random()*W #[A]
     return Xme, Yme, Zme   
 
 def load_c( Nc, s_box):
@@ -100,10 +100,10 @@ def dist_hi(spec,x,y,z,j):
         dy = dy-s_box
     elif (dy < -0.5*s_box):
         dy = dy + s_box
-    if (dz > 0.5*s_box):
-        dz = dz-s_box
-    elif (dz < -0.5*s_box):
-        dz = dz + s_box
+#    if (dz > 0.5*s_box):
+#        dz = dz-s_box
+#    elif (dz < -0.5*s_box):
+#        dz = dz + s_box
     return dx*dx + dy*dy + dz*dz
 
 def dist_ci(x,y,z,j):
@@ -134,12 +134,32 @@ def Ui(r2, eps, sig):
         r6i = r2i*r2i*r2i
         ui = 4*eps*(r6i*r6i-r6i) #[K]
         fi = 48*eps*(r6i*r6i-0.5*r6i) #[K]
+        
     else:
         ui = 0
         fi = 0
     return ui, fi
 
-def Up(spec, x, y, z, ia, jb=0):
+
+def Usf( z, eps, sig):
+    # Potential Energy of a particle
+    
+    A = 2*pi*eps*rho_sf*sig**2*del_sf
+    
+    d = z
+    #print( "Xme", Xme[Nme-1], "Xco", Xco[Nco-1], "Nco", Nco, "Nme", Nme, "d", d)
+    #if( d < 0.00001 ):
+        #raise ValueError('A very specific bad thing happened.')
+    ui = A*( 2/5*(sig/d)**10 - (sig/d)**4 - sig**4/( 3*del_sf*(d+0.61*del_sf)**3 ) )
+    fi = 4*A*( (sig/d)**10 - (sig/d)**4 - sig**4*d/(4*del_sf*(d + 0.61*del_sf)**4) )
+
+    d = W - z
+    ui = ui + A*( 2/5*(sig/d)**10 - (sig/d)**4 - sig**4/( 3*del_sf*(d+0.61*del_sf)**3 ) )
+    fi = fi + 4*A*( (sig/d)**10 - (sig/d)**4 - sig**4*d/(4*del_sf*(d + 0.61*del_sf)**4) )
+    
+    return ui, fi
+    
+def Up(spec, x, y, z, ia, jb=0, sf=True):
     # Total LJ potential of proposed particle with all other particles
     # omit the ia'th H2 particle. When not needed, Nh is used.
     # jb used in the UTo operation to avoid overcounting interactions
@@ -147,46 +167,68 @@ def Up(spec, x, y, z, ia, jb=0):
     F_move = 0
     
     if(spec == "co2"):
-        #Similar Particles
-        for i in range(jb, Nco): # CO2 particles
-            if ( i != ia):
-                r2 = dist_hi("co2", x,y,z, i)
-                ui, fi = Ui( r2, e_co, s_co)
+
+        # With other C02 particles
+        if ( Nco > 0):        
+            for i in range(jb, Nco):
+                if ( i != ia):
+                    r2 = dist_hi("co2", x,y,z, i)
+                    ui, fi = Ui( r2, e_co, s_co)
+                    U_move = U_move + ui
+                    F_move = F_move + fi
+        
+        # With Me particles
+        if ( Nme > 0):
+            for i2 in range(0,Nme):
+                r2 = dist_hi("me", x,y,z, i2)
+                ui, fi = Ui( r2, e_meco, s_meco)
                 U_move = U_move + ui
                 F_move = F_move + fi
         
-        #Other Mobile
-        for i2 in range(0,Nme):
-            r2 = dist_hi("me", x,y,z, i2)
-            ui, fi = Ui( r2, e_meco, s_meco)
+        # With C particles
+        if (Nc > 0):
+            for ic in range(Nc): # C particles
+                r2 = dist_ci( x,y,z, ic)
+                ui, fi = Ui( r2, e_cco, s_cco)
+                U_move = U_move + ui
+                F_move = F_move + fi
+            
+        if sf == True:
+            ui, fi = Usf( z, e_cosf, s_cosf )
             U_move = U_move + ui
             F_move = F_move + fi
-        
-        for ic in range(Nc): # C particles
-            r2 = dist_ci( x,y,z, ic)
-            ui, fi = Ui( r2, e_cco, s_cco)
-            U_move = U_move + ui
-            F_move = F_move + fi
-        
+            
+
     elif (spec == "me"):
-        #Similar Particles
-        for i in range(jb, Nme): # Me particles
-            if ( i != ia):
-                r2 = dist_hi("me", x,y,z, i)
-                ui, fi = Ui( r2, e_me, s_me)
+
+        # With other Me Particles
+        if (Nme > 0):
+            for i in range(jb, Nme):
+                if ( i != ia):
+                    r2 = dist_hi("me", x,y,z, i)
+                    ui, fi = Ui( r2, e_me, s_me)
+                    U_move = U_move + ui
+                    F_move = F_move + fi
+        
+        # With CO2 Particles:
+        if (Nco > 0):
+            for i2 in range(0,Nco):
+                r2 = dist_hi("co2", x,y,z, i2)
+                ui, fi = Ui( r2, e_meco, s_meco)
                 U_move = U_move + ui
                 F_move = F_move + fi
-        #Other Mobile
         
-        for i2 in range(0,Nco):
-            r2 = dist_hi("co2", x,y,z, i2)
-            ui, fi = Ui( r2, e_meco, s_meco)
-            U_move = U_move + ui
-            F_move = F_move + fi
+        # With C Particles:
+        if (Nc > 0):
+            for ic in range(Nc): # C particles
+                r2 = dist_ci( x,y,z, ic)
+                ui, fi = Ui( r2, e_cme, s_cme)
+                U_move = U_move + ui
+                F_move = F_move + fi
         
-        for ic in range(Nc): # C particles
-            r2 = dist_ci( x,y,z, ic)
-            ui, fi = Ui( r2, e_cme, s_cme)
+        # With Surface:
+        if sf == True:
+            ui, fi = Usf( z, e_mesf, s_mesf )
             U_move = U_move + ui
             F_move = F_move + fi
                  
@@ -279,6 +321,23 @@ def U_Tot():
             ui, fi = Ui( r2, e_cme, s_cme)
             UT = UT + ui
             FT = FT + fi
+            
+    if (sf == True):
+        
+        # CO2 with SF
+        for j in range( 0, Nco):
+            z = Zco[j]
+            ui, fi = Usf( z, e_cosf, s_cosf )
+            UT = UT + ui
+            FT = FT + fi
+
+        # Me with SF
+        for j in range( 0, Nme):
+            z = Zme[j]
+            ui, fi = Usf( z, e_mesf, s_mesf )
+            UT = UT + ui
+            FT = FT + fi
+        
     
     return( UT, FT )
 
@@ -294,9 +353,9 @@ def box_fix( x, y, z):
     if y > s_box:
         y = y - s_box
     if z < 0:
-        z = z + s_box
-    if z > s_box:
-        z = z - s_box
+        z = z + W
+    if z > W:
+        z = z - W
     return x,y,z
 
 
@@ -312,19 +371,27 @@ def mc_add():
         
     x = random()*s_box
     y = random()*s_box
-    z = random()*s_box
+    z = random()*W
     
     U_move, F_move = Up(spec, x, y, z, N_max)
     
     pa_add = p_add(spec, U_move )
     
+    if ( mega_verbose ):
+        print( "Add", spec, "U:", U_move, "F:", F_move, "p:", pa_add)
+    
     if ( random() < pa_add):
+            
         add(spec, x, y, z)
         UT = UT + U_move
         FT = FT + F_move
         Aacc = Aacc + 1
         if ( Nco > N_max | Nme > N_max ):
             return
+        
+        if ( mega_verbose ):
+            tempu, tempf = U_Tot()
+            print("Accepted", "UT:", UT, "UTot:", tempu, "FT:", FT, "FTot:", tempf)
             
 def mc_remove():
     # Attempt a "remove" trial move
@@ -334,17 +401,25 @@ def mc_remove():
         return
     
     if ( random() < yco ):
+        if (Nco == 0):
+            return
         spec = "co2"
         o = floor( random()*Nco )
         x = Xco[o]
         y = Yco[o]
         z = Zco[o]
+        if (mega_verbose):
+            print( spec, "Nco:", Nco, "z:", z, "o:", o)
     else:
+        if (Nme == 0):
+            return
         spec = "me"
         o = floor( random()*Nme )
         x = Xme[o]
         y = Yme[o]
         z = Zme[o]
+        if (mega_verbose):
+            print( spec, "Nme:", Nme, "z:", z, "o:", o)
     
     
     # Calculate Energy of Trial Move
@@ -356,8 +431,13 @@ def mc_remove():
     # Probability of Accepting Trial Move
     pa_remove = p_rem(spec, U_move )
     
+    if ( mega_verbose ):
+        print( "Remove", spec, "U:", U_move, "F:", F_move, "p:", pa_remove )
+        
+        
     # Accept or Decline Trial Move
     if (random() < pa_remove):
+ 
         try:
             remove(spec, o)
         except:
@@ -368,29 +448,41 @@ def mc_remove():
         Racc = Racc + 1
         if ( Nco > N_max | Nme > N_max ):
             return
+        
+        if ( mega_verbose ):
+            tempu, tempf = U_Tot()
+            print("Accepted", "UT:", UT, "UTot:", tempu, "FT:", FT, "FTot:", tempf)
 
 def mc_move():
     # Attempt a "move" trial move
     global UT, FT, Nco, Nme, Nacc, Natt
-    Natt = Natt + 1
-    if (Nco == 0 | Nme == 0):
-        return
     
+
+
     # Select Random particle
     if ( random() < yco ):
+        if (Nco == 0):
+            return
         spec = "co2"
         o = floor( random()*Nco )
         x = Xco[o]
         y = Yco[o]
         z = Zco[o]
+        if (mega_verbose):
+            print( spec, "Nco:", Nco, "z:", z, "o:", o)
     else:
+        if (Nme == 0):
+            return
         spec = "me"
         o = floor( random()*Nme )
         x = Xme[o]
         y = Yme[o]
         z = Zme[o]
+        if (mega_verbose):
+            print( spec, "Nme:", Nme, "z:", z, "o:", o)
     
-    
+        
+    Natt = Natt + 1
     # Calculate Energy of current configuration
     U1, F1 = Up(spec, x,y,z, o)
     
@@ -406,6 +498,9 @@ def mc_move():
     F_move = F2 - F1
     
     pa_move = p_move( U_move )
+    
+    if ( mega_verbose ):
+        print( "Move", spec, "U:", U_move, "F:", F_move, "p:", pa_move)
         
     # Accept the trial move
     if ( random() < pa_move ):
@@ -413,6 +508,45 @@ def mc_move():
         move(spec, o, xn, yn, zn)
         UT = UT + U_move
         FT = FT + F_move
+        
+        if ( mega_verbose ):
+            tempu, tempf = U_Tot()
+            print("Accepted", "UT:", UT, "UTot:", tempu, "FT:", FT, "FTot:", tempf)
+            
+            
+def mc_swap():
+    # Attempt a "swap" trial move
+    global UT, FT, Nco, Nme, Sacc, Satt
+        
+    # Select Random Particle
+    if ( random() < yco ):
+        if (Nco == 0):
+            return
+        spec = "co2"
+        spec_new = "me"
+        o = floor( random()*Nco )
+        x = Xco[o]
+        y = Yco[o]
+        z = Zco[o]
+        if (mega_verbose):
+            print( spec, "Nco:", Nco, "z:", z, "o:", o)
+    else:
+        if (Nme == 0):
+            return
+        spec = "me"
+        o = floor( random()*Nme )
+        x = Xme[o]
+        y = Yme[o]
+        z = Zme[o]
+        if (mega_verbose):
+            print( spec, "Nme:", Nme, "z:", z, "o:", o)
+        
+    Sacc = Sacc + 1
+    
+    # Calculate Energy of Current Configuration
+    U1, F1 = Up(spec, x,y,z, o)
+
+    # Calculate Energy of Configuration with species replaced
         
 def sample():
     rho_co = Nco/Vol
@@ -465,9 +599,9 @@ def adjust():
             delta = s_box*0.01
     return
 
-def mc_run():
+def mc_run(verbose = False):
     # Perform simulation
-    global Xco,Yco,Zco,Xme,Yme,Zme,Xc,Yc,Zc,Nc, UT, FT, Natt, Nacc, Aatt, Aacc, Ratt, Racc
+    global Xco,Yco,Zco,Xme,Yme,Zme,Xc,Yc,Zc,Nc, UT, FT, Natt, Nacc, Aatt, Aacc, Ratt, Racc, mega_verbose, sf
     
     # Initialize Unit Cell
     Xco, Yco, Zco = load_co(Nco, s_box, N_max)
@@ -475,15 +609,20 @@ def mc_run():
     Xc, Yc, Zc = load_c(Nc, s_box)
     UT, FT = U_Tot()
     
+    if( mega_verbose):
+        print( "UT:", UT, "FT:", FT)
     
     # Equilibration Step
     Natt = 0; Nacc=0; Aatt=0; Aacc=0; Ratt=0;Racc=0;
-    for j in range(N_equil):
-        mc_cycle()
-        if( (j)%floor(N_equil/10) == 0 ):
-            #print( j/N_equil )
-            #print(j/N_equil, Nacc/Natt, Aacc/Aatt, Racc/Ratt)
-            Natt = 0; Nacc=0; Aatt=0; Aacc=0; Ratt=0;Racc=0 
+    
+    if N_equil > 0:
+        for j in range(N_equil):
+            mc_cycle()
+            if( (j)%floor(N_equil/10) == 0 ):
+                if (verbose):
+                    #print( j/N_equil )
+                    print(j, "yco: ", round(Ncov[j]/(Ncov[j]+Nmev[j]), 3 ), "N: ", round( Ncov[j] + Nmev[j] ), "P: ", round( Pv[j]*10, 2), "En: ", round( Env[j],2 ), "Accept%:", round( Nacc/Natt, 3), round(Aacc/Aatt, 3), round(Racc/Ratt,3 ) )
+                Natt = 0; Nacc=0; Aatt=0; Aacc=0; Ratt=0;Racc=0 
             
 
     #Production Step
@@ -493,9 +632,10 @@ def mc_run():
     for j in range(N_prod):
         rhocov[j], rhomev[j], Env[j], Pv[j], Ncov[j], Nmev[j] = mc_cycle()
         if( (j)%floor(N_prod/10) == 0 ):
-            #print( j/N_prod )
-            #print(j/N_prod, Nacc/Natt, Aacc/Aatt, Racc/Ratt)
-            #print(j, "yco: ", round(Ncov[j]/(Ncov[j]+Nmev[j]), 3 ), "N: ", round( Ncov[j] + Nmev[j] ), "P: ", round( Pv[j]*10, 2), "En: ", round( Env[j],2 ) )
+            if( verbose ):
+                # print(j/N_prod, Nacc/Natt, Aacc/Aatt, Racc/Ratt)
+                print(j, "yco: ", round(Ncov[j]/(Ncov[j]+Nmev[j]), 3 ), "N: ", round( Ncov[j] + Nmev[j] ), "P: ", round( Pv[j]*10, 2), "En: ", round( Env[j],2 ), "Accept%:", round( Nacc/Natt, 3), round(Aacc/Aatt, 3), round(Racc/Ratt,3 ) )
+                
             Natt = 0; Nacc=0; Aatt=0; Aacc=0; Ratt=0;Racc=0 
         
     #plt.plot( Pv )
@@ -636,6 +776,10 @@ s_co = 3.615 # sigma [A]
 e_c = 28.0 # eps over kb[K] # Activated is 89.44
 s_c = 3.4  # sigma [A]
 
+# Surface of carbons
+e_csf = 28.0 # es over kb[K]
+s_csf = 3.40 # sigma [A]
+
 e_meco = np.sqrt(e_me*e_co)
 s_meco = (s_me+s_co)/2
 
@@ -644,3 +788,9 @@ s_cme = (s_me+s_c)/2
 
 e_cco = np.sqrt(e_co*e_c)
 s_cco = (s_co + s_c)/2
+
+e_cosf = np.sqrt(e_co*e_csf)
+s_cosf = (s_co + s_csf)/2
+
+e_mesf = np.sqrt(e_me*e_csf)
+s_mesf = (s_me + s_csf)/2

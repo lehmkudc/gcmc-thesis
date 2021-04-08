@@ -32,7 +32,7 @@ def load_c( Nc, s_box):
         Xc[i] = random()*s_box #[A]
         Yc[i] = random()*s_box #[A]
         Zc[i] = random()*s_box #[A]
-    return Xc, Yc, Zc   
+    return Xc, Yc, Zc   #TODO Make a reasonable carbon lattice/scaffold
 
 def move(spec, o, x, y, z):
     # Carry out the "move" trial move
@@ -79,7 +79,7 @@ def remove(spec, o):
         Zme[o] = Zme[Nme]
         
     
-
+# TODO: add a swap move
 
 def dist_hi(spec,x,y,z,j):
     # Distance btw a proposed particle and the ith H2 particle
@@ -125,7 +125,7 @@ def dist_ci(x,y,z,j):
         dz = dz + s_box
     return dx*dx + dy*dy + dz*dz
 
-
+# TODO: Increase the efficacy of LJ by adding multiple bodies
 
 def Ui(r2, eps, sig):
     # LJ potential btw two particles at r distance away
@@ -210,7 +210,7 @@ def p_add(spec, U_move ):
     #     given change in LJ potential
     if (U_move*beta > 100):
         return 0
-    elif (U_move*beta < -100):
+    elif (U_move*beta < -100): 
         return 1
     else:
         if( spec == "co2"):
@@ -465,7 +465,7 @@ def adjust():
             delta = s_box*0.01
     return
 
-def mc_run():
+def mc_run(verbose = False):
     # Perform simulation
     global Xco,Yco,Zco,Xme,Yme,Zme,Xc,Yc,Zc,Nc, UT, FT, Natt, Nacc, Aatt, Aacc, Ratt, Racc
     
@@ -478,12 +478,15 @@ def mc_run():
     
     # Equilibration Step
     Natt = 0; Nacc=0; Aatt=0; Aacc=0; Ratt=0;Racc=0;
-    for j in range(N_equil):
-        mc_cycle()
-        if( (j)%floor(N_equil/10) == 0 ):
-            #print( j/N_equil )
-            #print(j/N_equil, Nacc/Natt, Aacc/Aatt, Racc/Ratt)
-            Natt = 0; Nacc=0; Aatt=0; Aacc=0; Ratt=0;Racc=0 
+    
+    if N_equil > 0:
+        for j in range(N_equil):
+            mc_cycle()
+            if( (j)%floor(N_equil/10) == 0 ):
+                if (verbose):
+                    print( j/N_equil )
+                    print(j/N_equil, Nacc/Natt, Aacc/Aatt, Racc/Ratt)
+                Natt = 0; Nacc=0; Aatt=0; Aacc=0; Ratt=0;Racc=0 
             
 
     #Production Step
@@ -493,9 +496,10 @@ def mc_run():
     for j in range(N_prod):
         rhocov[j], rhomev[j], Env[j], Pv[j], Ncov[j], Nmev[j] = mc_cycle()
         if( (j)%floor(N_prod/10) == 0 ):
-            #print( j/N_prod )
-            #print(j/N_prod, Nacc/Natt, Aacc/Aatt, Racc/Ratt)
-            #print(j, "yco: ", round(Ncov[j]/(Ncov[j]+Nmev[j]), 3 ), "N: ", round( Ncov[j] + Nmev[j] ), "P: ", round( Pv[j]*10, 2), "En: ", round( Env[j],2 ) )
+            if( verbose ):
+                print(j/N_prod, Nacc/Natt, Aacc/Aatt, Racc/Ratt)
+                print(j, "yco: ", round(Ncov[j]/(Ncov[j]+Nmev[j]), 3 ), "N: ", round( Ncov[j] + Nmev[j] ), "P: ", round( Pv[j]*10, 2), "En: ", round( Env[j],2 ) )
+                
             Natt = 0; Nacc=0; Aatt=0; Aacc=0; Ratt=0;Racc=0 
         
     #plt.plot( Pv )

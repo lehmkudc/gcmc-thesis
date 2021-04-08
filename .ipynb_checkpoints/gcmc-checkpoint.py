@@ -210,7 +210,7 @@ def p_add(spec, U_move ):
     #     given change in LJ potential
     if (U_move*beta > 100):
         return 0
-    elif (U_move*beta > 100):
+    elif (U_move*beta < -100):
         return 1
     else:
         if( spec == "co2"):

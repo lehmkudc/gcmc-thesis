@@ -14,12 +14,7 @@ def load_co( Nco, s_box, N_max ):
     for i in range(Nco ):
         Xco[i] = random()*s_box #[A]
         Yco[i] = random()*s_box #[A]
-        
-        if (sf == True): 
-            Zco[i] = random()*W #[A]
-        else:
-            Zco[i] = random()*s_box #[A]
-            
+        Zco[i] = random()*W #[A]
     return Xco, Yco, Zco   
 
 def load_me( Nme, s_box, N_max ):
@@ -28,13 +23,16 @@ def load_me( Nme, s_box, N_max ):
     for i in range( Nme ):
         Xme[i] = random()*s_box #[A]
         Yme[i] = random()*s_box #[A]
-        if (sf == True): 
-            Zme[i] = random()*W #[A]
-        else:
-            Zme[i] = random()*s_box #[A]
-            
+        Zme[i] = random()*W #[A]
     return Xme, Yme, Zme   
 
+def load_c( Nc, s_box):
+    Xc = [0]*Nc; Yc =[0]*Nc; Zc =[0]*Nc;
+    for i in range( Nc ):
+        Xc[i] = random()*s_box #[A]
+        Yc[i] = random()*s_box #[A]
+        Zc[i] = random()*s_box #[A]
+    return Xc, Yc, Zc   
 
 def move(spec, o, x, y, z):
     # Carry out the "move" trial move
@@ -131,15 +129,30 @@ def dist_hi(spec,x,y,z,j):
         dy = dy-s_box
     elif (dy < -0.5*s_box):
         dy = dy + s_box
-    
-    if sf == False:
-        if (dz > 0.5*s_box):
-            dz = dz-s_box
-        elif (dz < -0.5*s_box):
-            dz = dz + s_box
-            
+#    if (dz > 0.5*s_box):
+#        dz = dz-s_box
+#    elif (dz < -0.5*s_box):
+#        dz = dz + s_box
     return dx*dx + dy*dy + dz*dz
 
+def dist_ci(x,y,z,j):
+    # Distance btw proposed particle and the ith C particle
+    dx = x - Xc[j] #[A]
+    dy = y - Yc[j] #[A]
+    dz = z - Zc[j] #[A]
+    if (dx > 0.5*s_box):
+        dx = dx-s_box
+    elif (dx < -0.5*s_box):
+        dx = dx + s_box
+    if (dy > 0.5*s_box):
+        dy = dy-s_box
+    elif (dy < -0.5*s_box):
+        dy = dy + s_box
+    if (dz > 0.5*s_box):
+        dz = dz-s_box
+    elif (dz < -0.5*s_box):
+        dz = dz + s_box
+    return dx*dx + dy*dy + dz*dz
 
 
 
@@ -175,7 +188,7 @@ def Usf( z, eps, sig):
     
     return ui, fi
     
-def Up(spec, x, y, z, ia, jb=0, sf=False, swap=False):
+def Up(spec, x, y, z, ia, jb=0, sf=False,swap=False):
     # Total LJ potential of proposed particle with all other particles
     # omit the ia'th H2 particle. When not needed, Nh is used.
     # jb used in the UTo operation to avoid overcounting interactions
@@ -380,7 +393,7 @@ def U_Tot():
             FT = FT + fi
             
     if (sf == True):
-        print( "Uh Oh")
+        
         # CO2 with SF
         for j in range( 0, Nco):
             z = Zco[j]
@@ -409,18 +422,10 @@ def box_fix( x, y, z):
         y = y + s_box
     if y > s_box:
         y = y - s_box
-        
-    if sf == True:  
-        if z < 0:
-            z = z + W
-        if z > W:
-            z = z - W
-    else:
-        if z < 0:
-            z = z + s_box
-        if z > s_box:
-            z = z - s_box
-            
+    if z < 0:
+        z = z + W
+    if z > W:
+        z = z - W
     return x,y,z
 
 
@@ -436,10 +441,7 @@ def mc_add():
         
     x = random()*s_box
     y = random()*s_box
-    if sf == True:  
-        z = random()*W
-    else:
-        z = random()*s_box
+    z = random()*W
     
     U_move, F_move = Up(spec, x, y, z, N_max)
     
@@ -694,6 +696,7 @@ def mc_run(verbose = False):
     # Initialize Unit Cell
     Xco, Yco, Zco = load_co(Nco, s_box, N_max)
     Xme, Yme, Zme = load_me(Nme, s_box, N_max)
+    Xc, Yc, Zc = load_c(Nc, s_box)
     UT, FT = U_Tot()
     
     if( mega_verbose):

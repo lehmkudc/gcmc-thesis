@@ -848,7 +848,41 @@ def PR_Fugacity_Single( P_res, T, species):
     else:
         stop("unknown species")
       
+
     
+def PR_Zmix( P_res, T, yco ):
+    Tc_co = 304.2 #K
+    Tc_me = 190.6 #K
+    Pc_co = 73.76 #bar
+    Pc_me = 46 #bar
+    ohm_co = 0.225
+    ohm_me = 0.008
+    
+    kappa_me = kappa( ohm_me )
+    alpha_me = alpha( kappa_me, Tc_me, T)
+    a_me = a( Tc_me, Pc_me, alpha_me, P_res, T )
+    A_me = A( a_me, P_res, T )
+    b_me = b( Tc_me, Pc_me )
+    B_me = B( b_me, P_res, T)
+
+    kappa_co = kappa( ohm_co )
+    alpha_co = alpha( kappa_co, Tc_co, T)
+    a_co = a( Tc_co, Pc_co, alpha_co, P_res, T )
+    A_co = A( a_co, P_res, T )
+    b_co = b( Tc_co, Pc_co )
+    B_co = B( b_co, P_res, T)
+    
+    a_cm = np.sqrt(a_me*a_co )*(1-0.0919)
+    A_cm = A( a_cm, P_res, T)
+
+    a_mix = yco*yco*a_co + 2*yco*(1-yco)*a_cm + (1-yco)*(1-yco)*a_me
+    b_mix = yco*b_co + (1-yco)*b_me
+
+    A_mix = A( a_mix, P_res, T )
+    B_mix = B( b_mix, P_res, T )
+    Z_mix = solveZ( A_mix, B_mix )
+    
+    return Z_mix
 
     
 e_me = 147.9 # eps over kb[K]

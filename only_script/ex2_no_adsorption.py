@@ -16,16 +16,13 @@ exec(open("gcmc.py").read())
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-y", "--yco", action = "store", dest="yco",type=float)
-parser.add_argument("-r", "--rep", action = "store", dest="rep",type=int)
 args = parser.parse_args()
 
 if args.yco:
     yco = args.yco
-if args.rep:
-    rep = args.rep
 
 
-filename = "data/" + "y" + str(yco) + "rep" + str(rep) + ".csv"
+filename = "data/" + "y" + str(yco) + ".csv"
 print( filename )
 data_dump = pd.read_csv(filename).copy()
 
@@ -61,7 +58,7 @@ for i in range(data_dump.shape[0]):
             N_equil = int( np.round( 500000/N_moves) )
         if T == 45+273.15:
             N_equil = int( np.round( 400000/N_moves) )
-        if T == 60+273.15:
+        if T == 60+273.15:git 
             N_equil = int( np.round( 300000/N_moves) )
         N_prod = int( np.round( 10000/N_moves) )
 

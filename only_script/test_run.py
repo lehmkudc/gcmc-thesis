@@ -15,9 +15,6 @@ import argparse
 exec(open("gcmc.py").read())
 
 
-
-
-
 # Default Thermo Settings
 yco = 0.5
 P_res = 200*10**5 #[Pa]
@@ -80,3 +77,5 @@ pi_move = 0.5
 
 
 rhocov,rhomev,Env,Pv,Ncov, Nmev = mc_run(verbose = verbose)
+
+

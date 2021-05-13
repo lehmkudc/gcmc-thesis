@@ -35,7 +35,8 @@ for i in range(data_dump.shape[0]):
         sf = False
         mega_verbose = False
 
-        s_box = 57.15
+        #s_box = 57.15
+        s_box = 45
         N_max = 50000
         Vol = s_box**3
         kb = 1.3806*10**(7) #[Pa*A^3/K]
@@ -51,12 +52,12 @@ for i in range(data_dump.shape[0]):
 
         N_moves = 100
         if T == 30+273.15:
-            N_equil = int( np.round( 500000/N_moves) )
+            N_equil = int( np.round( 1000000/N_moves) )
         if T == 45+273.15:
-            N_equil = int( np.round( 400000/N_moves) )
+            N_equil = int( np.round( 900000/N_moves) )
         if T == 60+273.15:
-            N_equil = int( np.round( 300000/N_moves) )
-        N_prod = int( np.round( 10000/N_moves) )
+            N_equil = int( np.round( 800000/N_moves) )
+        N_prod = int( np.round( 100000/N_moves) )
 
         t0 = time()
         rhocov,rhomev,Env,Pv,Ncov, Nmev = mc_run()

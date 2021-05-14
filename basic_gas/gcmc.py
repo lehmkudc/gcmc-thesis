@@ -129,10 +129,14 @@ def dist_hi(spec,x,y,z,j):
         dy = dy-s_box
     elif (dy < -0.5*s_box):
         dy = dy + s_box
-#    if (dz > 0.5*s_box):
-#        dz = dz-s_box
-#    elif (dz < -0.5*s_box):
-#        dz = dz + s_box
+        
+    if (sf == True):
+        return dx*dx + dy*dy + dz*dz
+    
+    if (dz > 0.5*s_box):
+        dz = dz-s_box
+    elif (dz < -0.5*s_box):
+        dz = dz + s_box
     return dx*dx + dy*dy + dz*dz
 
 def dist_ci(x,y,z,j):
@@ -691,7 +695,10 @@ def adjust():
 
 def mc_run(verbose = False):
     # Perform simulation
-    global Xco,Yco,Zco,Xme,Yme,Zme,Xc,Yc,Zc,Nc, UT, FT, Natt, Nacc, Aatt, Aacc, Ratt, Racc, mega_verbose, sf
+    global Xco,Yco,Zco,Xme,Yme,Zme,Xc,Yc,Zc,Nc, UT, FT, Natt, Nacc, Aatt, Aacc, Ratt, Racc, mega_verbose, 
+    
+    
+  
     
     # Initialize Unit Cell
     Xco, Yco, Zco = load_co(Nco, s_box, N_max)

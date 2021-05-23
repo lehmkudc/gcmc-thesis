@@ -31,7 +31,7 @@ W = 5*3.8 #[A] relative to diameter of methane 3.80A
 sf = False
 mega_verbose = False
 
-s_box = 45
+s_box = 57.15
 N_max = 50000
 Vol = s_box**3
 kb = 1.3806*10**(7) #[Pa*A^3/K]

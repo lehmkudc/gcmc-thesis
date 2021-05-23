@@ -18,7 +18,7 @@ args = parser.parse_args()
 y = args.yco
 
 
-filename = "data/" + "y" + str(y) + ".csv"
+filename = "data2/" + "y" + str(y) + ".csv"
 print( filename )
 data_dump = pd.read_csv(filename).copy()
 
@@ -54,9 +54,9 @@ for i in range(data_dump.shape[0]):
         if T == 30+273.15:
             N_equil = int( np.round( 1000000/N_moves) )
         if T == 45+273.15:
-            N_equil = int( np.round( 900000/N_moves) )
+            N_equil = int( np.round( 1000000/N_moves) )
         if T == 60+273.15:
-            N_equil = int( np.round( 800000/N_moves) )
+            N_equil = int( np.round( 1000000/N_moves) )
         N_prod = int( np.round( 100000/N_moves) )
 
         t0 = time()

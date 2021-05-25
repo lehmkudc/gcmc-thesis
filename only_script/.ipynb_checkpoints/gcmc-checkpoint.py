@@ -1,12 +1,9 @@
 from random import random, seed, randrange
 from math import floor, pi
-import matplotlib.pyplot as plt
 import numpy as np
 import os
 from time import time
 import pandas as pd
-from scipy.integrate import simps, trapz, cumtrapz
-from scipy.ndimage.filters import gaussian_filter1d
 
 def load_co( Nco, s_box, N_max ):
     
@@ -14,7 +11,12 @@ def load_co( Nco, s_box, N_max ):
     for i in range(Nco ):
         Xco[i] = random()*s_box #[A]
         Yco[i] = random()*s_box #[A]
-        Zco[i] = random()*W #[A]
+        
+        if (sf == True): 
+            Zco[i] = random()*W #[A]
+        else:
+            Zco[i] = random()*s_box #[A]
+            
     return Xco, Yco, Zco   
 
 def load_me( Nme, s_box, N_max ):
@@ -23,16 +25,13 @@ def load_me( Nme, s_box, N_max ):
     for i in range( Nme ):
         Xme[i] = random()*s_box #[A]
         Yme[i] = random()*s_box #[A]
-        Zme[i] = random()*W #[A]
+        if (sf == True): 
+            Zme[i] = random()*W #[A]
+        else:
+            Zme[i] = random()*s_box #[A]
+            
     return Xme, Yme, Zme   
 
-def load_c( Nc, s_box):
-    Xc = [0]*Nc; Yc =[0]*Nc; Zc =[0]*Nc;
-    for i in range( Nc ):
-        Xc[i] = random()*s_box #[A]
-        Yc[i] = random()*s_box #[A]
-        Zc[i] = random()*s_box #[A]
-    return Xc, Yc, Zc   
 
 def move(spec, o, x, y, z):
     # Carry out the "move" trial move
@@ -129,34 +128,15 @@ def dist_hi(spec,x,y,z,j):
         dy = dy-s_box
     elif (dy < -0.5*s_box):
         dy = dy + s_box
-        
-    if (sf == True):
-        return dx*dx + dy*dy + dz*dz
     
-    if (dz > 0.5*s_box):
-        dz = dz-s_box
-    elif (dz < -0.5*s_box):
-        dz = dz + s_box
+    if sf == False:
+        if (dz > 0.5*s_box):
+            dz = dz-s_box
+        elif (dz < -0.5*s_box):
+            dz = dz + s_box
+            
     return dx*dx + dy*dy + dz*dz
 
-def dist_ci(x,y,z,j):
-    # Distance btw proposed particle and the ith C particle
-    dx = x - Xc[j] #[A]
-    dy = y - Yc[j] #[A]
-    dz = z - Zc[j] #[A]
-    if (dx > 0.5*s_box):
-        dx = dx-s_box
-    elif (dx < -0.5*s_box):
-        dx = dx + s_box
-    if (dy > 0.5*s_box):
-        dy = dy-s_box
-    elif (dy < -0.5*s_box):
-        dy = dy + s_box
-    if (dz > 0.5*s_box):
-        dz = dz-s_box
-    elif (dz < -0.5*s_box):
-        dz = dz + s_box
-    return dx*dx + dy*dy + dz*dz
 
 
 
@@ -192,7 +172,7 @@ def Usf( z, eps, sig):
     
     return ui, fi
     
-def Up(spec, x, y, z, ia, jb=0, sf=False,swap=False):
+def Up(spec, x, y, z, ia, jb=0, sf=False, swap=False):
     # Total LJ potential of proposed particle with all other particles
     # omit the ia'th H2 particle. When not needed, Nh is used.
     # jb used in the UTo operation to avoid overcounting interactions
@@ -397,7 +377,7 @@ def U_Tot():
             FT = FT + fi
             
     if (sf == True):
-        
+        print( "Uh Oh")
         # CO2 with SF
         for j in range( 0, Nco):
             z = Zco[j]
@@ -426,10 +406,18 @@ def box_fix( x, y, z):
         y = y + s_box
     if y > s_box:
         y = y - s_box
-    if z < 0:
-        z = z + W
-    if z > W:
-        z = z - W
+        
+    if sf == True:  
+        if z < 0:
+            z = z + W
+        if z > W:
+            z = z - W
+    else:
+        if z < 0:
+            z = z + s_box
+        if z > s_box:
+            z = z - s_box
+            
     return x,y,z
 
 
@@ -445,7 +433,10 @@ def mc_add():
         
     x = random()*s_box
     y = random()*s_box
-    z = random()*W
+    if sf == True:  
+        z = random()*W
+    else:
+        z = random()*s_box
     
     U_move, F_move = Up(spec, x, y, z, N_max)
     
@@ -695,15 +686,11 @@ def adjust():
 
 def mc_run(verbose = False):
     # Perform simulation
-    global Xco,Yco,Zco,Xme,Yme,Zme,Xc,Yc,Zc,Nc, UT, FT, Natt, Nacc, Aatt, Aacc, Ratt, Racc, mega_verbose, 
-    
-    
-  
+    global Xco,Yco,Zco,Xme,Yme,Zme,Xc,Yc,Zc,Nc, UT, FT, Natt, Nacc, Aatt, Aacc, Ratt, Racc, mega_verbose, sf
     
     # Initialize Unit Cell
     Xco, Yco, Zco = load_co(Nco, s_box, N_max)
     Xme, Yme, Zme = load_me(Nme, s_box, N_max)
-    Xc, Yc, Zc = load_c(Nc, s_box)
     UT, FT = U_Tot()
     
     if( mega_verbose):
@@ -858,7 +845,41 @@ def PR_Fugacity_Single( P_res, T, species):
     else:
         stop("unknown species")
       
+
     
+def PR_Zmix( P_res, T, yco ):
+    Tc_co = 304.2 #K
+    Tc_me = 190.6 #K
+    Pc_co = 73.76 #bar
+    Pc_me = 46 #bar
+    ohm_co = 0.225
+    ohm_me = 0.008
+    
+    kappa_me = kappa( ohm_me )
+    alpha_me = alpha( kappa_me, Tc_me, T)
+    a_me = a( Tc_me, Pc_me, alpha_me, P_res, T )
+    A_me = A( a_me, P_res, T )
+    b_me = b( Tc_me, Pc_me )
+    B_me = B( b_me, P_res, T)
+
+    kappa_co = kappa( ohm_co )
+    alpha_co = alpha( kappa_co, Tc_co, T)
+    a_co = a( Tc_co, Pc_co, alpha_co, P_res, T )
+    A_co = A( a_co, P_res, T )
+    b_co = b( Tc_co, Pc_co )
+    B_co = B( b_co, P_res, T)
+    
+    a_cm = np.sqrt(a_me*a_co )*(1-0.0919)
+    A_cm = A( a_cm, P_res, T)
+
+    a_mix = yco*yco*a_co + 2*yco*(1-yco)*a_cm + (1-yco)*(1-yco)*a_me
+    b_mix = yco*b_co + (1-yco)*b_me
+
+    A_mix = A( a_mix, P_res, T )
+    B_mix = B( b_mix, P_res, T )
+    Z_mix = solveZ( A_mix, B_mix )
+    
+    return Z_mix
 
     
 e_me = 147.9 # eps over kb[K]

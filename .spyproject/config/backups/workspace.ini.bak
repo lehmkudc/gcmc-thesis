@@ -4,7 +4,7 @@ save_data_on_exit = True
 save_history = True
 save_non_project_files = False
 project_type = 'empty-project-type'
-recent_files = ['one_run.py', 'single_component_individual_runs\\exp_run_orchestration.py', 'debugging_pure_component_and_mixtures\\ex2_no_adsorption.py', 'debugging_pure_component_and_mixtures\\duration_test_init.sh', 'debugging_pure_component_and_mixtures\\run_experiment.sh']
+recent_files = ['one_run.py', 'single_component_individual_runs\\exp_run_orchestration.py', 'debugging_pure_component_and_mixtures\\ex2_no_adsorption.py', 'single_component_individual_runs\\initial_tests\\exp_list.csv']
 
 [main]
 version = 0.2.0

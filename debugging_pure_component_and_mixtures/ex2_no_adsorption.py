@@ -4,7 +4,6 @@ import numpy as np
 import os
 from time import time
 import pandas as pd
-from time import time
 import sys
 import argparse
 

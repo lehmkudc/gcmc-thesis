@@ -3,10 +3,13 @@ import pandas as pd
 #import numpy as np
 #import sys
 #import os
-from multiprocessing import Process
+from multiprocessing import Pool, cpu_count
 
 
-exp_filepath = "exp_list.csv"
+exp_filepath = "longer_tests/c02_pure_component_exp_list.csv"
+data_filepath = "longer_tests/"
+
+# print( "Available CPU:", cpu_count() )
 
 def run_single( exp_list, i):
     yco = exp_list.yco[i]
@@ -16,25 +19,21 @@ def run_single( exp_list, i):
     n_moves = exp_list.n_moves[i]
     n_equil = exp_list.n_equil[i]
     n_prod = exp_list.n_prod[i]
-    rep = exp_list.rep[i]
-    filepath = "data/" + str(exp_list.exp[i]) + ".csv"
+    filepath = data_filepath + str(exp_list.exp[i]) + ".csv"
     
-    shellString = ("python ../one_run.py -y " + str(yco) +
-                   " -p " + str(p_mpa) + " -t " + str(t_c) + 
-                   " -s " + str(s_box) + " -m " + str(n_moves) + 
-                   " -e " + str(n_equil) + " -o " + str(n_prod) + 
-                   " -r " + str(rep) + " -f " + str(filepath)
-                   )
-    print( shellString )
-    output = subprocess.check_output(shellString, shell = True)
-    exp_list.at[i,"complete"] = 1
-    print( output )
+    shellString = (
+        "python ../one_run.py -y " + str(yco) + " -p " + str(p_mpa) + 
+        " -t " + str(t_c) + " -s " + str(s_box) + " -m " + str(n_moves) + 
+        " -e " + str(n_equil) + " -o " + str(n_prod) + " -f " + str(filepath)
+    )
     
-    return( exp_list )
+    subprocess.run(shellString, shell = True)
+    
+    return()
     #return( output )
 
 # if __name__ == '__main__':
-#     experiments = pd.read_csv( "exp_list.csv")
+#     experiments = pd.read_csv(exp_filepath)
     
 #     process_list = []
 #     for i in range(experiments.shape[0]):
@@ -44,14 +43,27 @@ def run_single( exp_list, i):
     
 #     for process in process_list:
 #         process.join()
- 
-experiments = pd.read_csv(exp_filepath)
-       
-for i in range(experiments.shape[0]):
+        
+if __name__ == '__main__':
+    experiments = pd.read_csv(exp_filepath)
     
-    if experiments.complete[i] == 0:
-        experiments = run_single( experiments, i)
-        experiments.to_csv(exp_filepath, index = False)
+    pool = Pool(processes = cpu_count()-2)
+
+    for i in range(experiments.shape[0]):
+        pool.apply_async(run_single, args=(experiments,i))
         
-        
-print( experiments )
+    pool.close()
+    pool.join()
+
+
+print( "Done!")
+ 
+# experiments = pd.read_csv(exp_filepath)
+       
+# for i in range(experiments.shape[0]):
+    
+#     if experiments.complete[i] == 0:
+#         experiments = run_single( experiments, i)
+#         experiments.to_csv(exp_filepath, index = False)
+
+

@@ -8,6 +8,7 @@ from multiprocessing import Pool, cpu_count
 
 exp_filepath = "longer_tests/c02_pure_component_exp_list.csv"
 data_filepath = "longer_tests/"
+run_script = ""
 
 # print( "Available CPU:", cpu_count() )
 
@@ -22,7 +23,7 @@ def run_single( exp_list, i):
     filepath = data_filepath + str(exp_list.exp[i]) + ".csv"
     
     shellString = (
-        "python ../one_run.py -y " + str(yco) + " -p " + str(p_mpa) + 
+        "python " + run_script + " -y " + str(yco) + " -p " + str(p_mpa) + 
         " -t " + str(t_c) + " -s " + str(s_box) + " -m " + str(n_moves) + 
         " -e " + str(n_equil) + " -o " + str(n_prod) + " -f " + str(filepath)
     )

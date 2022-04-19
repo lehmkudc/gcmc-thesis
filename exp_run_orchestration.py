@@ -6,9 +6,9 @@ import pandas as pd
 from multiprocessing import Pool, cpu_count
 
 
-exp_filepath = "longer_tests/c02_pure_component_exp_list.csv"
-data_filepath = "longer_tests/"
-run_script = ""
+exp_filepath = "single_component_individual_runs/longer_tests/c02_pure_component_exp_list.csv"
+data_filepath = "single_component_individual_runs/longer_tests/data/"
+run_script = "one_run.py"
 
 # print( "Available CPU:", cpu_count() )
 
@@ -20,7 +20,7 @@ def run_single( exp_list, i):
     n_moves = exp_list.n_moves[i]
     n_equil = exp_list.n_equil[i]
     n_prod = exp_list.n_prod[i]
-    filepath = data_filepath + str(exp_list.exp[i]) + ".csv"
+    filepath = data_filepath + "/" + str(exp_list.exp[i]) + ".csv"
     
     shellString = (
         "python " + run_script + " -y " + str(yco) + " -p " + str(p_mpa) + 

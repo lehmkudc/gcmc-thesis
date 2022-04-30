@@ -6,26 +6,26 @@ import pandas as pd
 from multiprocessing import Pool, cpu_count
 
 
-exp_filepath = "single_component_individual_runs/longer_tests/c02_pure_component_exp_list.csv"
-data_filepath = "single_component_individual_runs/longer_tests/data/"
-run_script = "one_run.py"
+exp_filepath = "aspen_comparison/aspen_comparison.csv"
+data_filepath = "aspen_comparison/data/"
+run_script = "only_result.py"
 
 # print( "Available CPU:", cpu_count() )
 
 def run_single( exp_list, i):
     yco = exp_list.yco[i]
-    p_mpa = exp_list.p_mpa[i] 
+    p_bar = exp_list.p_bar[i] 
     t_c = exp_list.t_c[i]
     s_box = exp_list.s_box[i]
-    n_moves = exp_list.n_moves[i]
-    n_equil = exp_list.n_equil[i]
-    n_prod = exp_list.n_prod[i]
+    n_moves = int( exp_list.n_moves[i] )
+    n_equil = int( exp_list.n_equil[i] )
+    n_prod = int( exp_list.n_prod[i] )
     filepath = data_filepath + "/" + str(exp_list.exp[i]) + ".csv"
     
     shellString = (
-        "python " + run_script + " -y " + str(yco) + " -p " + str(p_mpa) + 
+        "python " + run_script + " -y " + str(yco) + " -p " + str(p_bar) + 
         " -t " + str(t_c) + " -s " + str(s_box) + " -m " + str(n_moves) + 
-        " -e " + str(n_equil) + " -o " + str(n_prod) + " -f " + str(filepath)
+        " -e " + str( n_equil) + " -o " + str(n_prod) + " -f " + str(filepath)
     )
     
     subprocess.run(shellString, shell = True)
@@ -48,7 +48,7 @@ def run_single( exp_list, i):
 if __name__ == '__main__':
     experiments = pd.read_csv(exp_filepath)
     
-    pool = Pool(processes = cpu_count()-2)
+    pool = Pool(processes = cpu_count()-1)
 
     for i in range(experiments.shape[0]):
         pool.apply_async(run_single, args=(experiments,i))

@@ -4,9 +4,9 @@ save_data_on_exit = True
 save_history = True
 save_non_project_files = False
 project_type = 'empty-project-type'
-recent_files = ['exp_run_orchestration.py', 'single_component_isotherms\\initial_test\\exp_list.csv', 'gcmc.py']
+recent_files = ['exp_run_orchestration.py', 'single_component_individual_runs\\initial_tests\\analysis.py', 'gcmc.py', 'one_run.py', 'only_result.py']
 
 [main]
 version = 0.2.0
-recent_files = ['exp_run_orchestration.py', 'single_component_individual_runs\\initial_tests\\analysis.py']
+recent_files = []
 

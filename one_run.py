@@ -5,7 +5,7 @@ exec(open("gcmc.py").read())
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-y", "--yco", action = "store", dest="yco",type=float, default = 1)
-parser.add_argument("-p", "--p_mpa", action = "store", dest="p_mpa",type=float, default = 20)
+parser.add_argument("-p", "--p_bar", action = "store", dest="p_bar",type=float, default = 20)
 parser.add_argument("-t", "--t_c", action = "store", dest="t_c",type=float, default = 45)
 parser.add_argument("-s", "--s_box", action = "store", dest="s_box",type=float, default = 34)
 parser.add_argument("-m", "--n_moves", action = "store", dest="n_moves",type=int, default = 1000)
@@ -16,7 +16,7 @@ parser.add_argument("-f", "--filepath", action = "store", dest="filepath",type=s
 args = parser.parse_args()
 
 yco = args.yco
-P_MPa = args.p_mpa
+P_bar = args.p_bar
 T_C = args.t_c
 s_box = args.s_box
 n_moves = args.n_moves
@@ -28,7 +28,7 @@ filepath = args.filepath
 
 
 if filepath == "default":
-    filepath = ("data/" + "yc0" + str(yco) + "_pmpa" + str(P_MPa) + 
+    filepath = ("data/" + "yc0" + str(yco) + "_pbar" + str(P_bar) + 
                 "_tc" + str(T_C) + "_sbox" + str(s_box) + "_nm" + str(n_moves) + 
                 "_ne" + str(n_equil) + "_np" + str(n_prod) + "_r" + str(rep) +
                 ".csv")
@@ -37,7 +37,7 @@ if filepath == "default":
     
 print( filepath )
 
-P_res = P_MPa*10**6 #[Pa]
+P_res = P_bar*10**5 #[Pa]
 T = T_C + 273.15 #K
 fco, fme = PR_Fugacity( P_res/10**5, T, yco )
 fco = fco*10**5

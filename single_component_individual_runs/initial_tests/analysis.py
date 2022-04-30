@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 
-dataPath = "single_component_individual_runs/initial_tests/data/"
+dataPath = "single_component_individual_runs/longer_tests/data/"
 
 allData = pd.DataFrame()
 

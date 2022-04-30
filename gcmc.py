@@ -145,8 +145,8 @@ def Ui(r2, eps, sig):
     if ( r2 < rc*rc ):
         r2i = sig*sig/r2 #[]
         r6i = r2i*r2i*r2i
-        ui = 4*eps*(r6i*r6i-r6i) #[K]
-        fi = 48*eps*(r6i*r6i-0.5*r6i) #[K]
+        ui = 4*eps*(r6i*r6i-r6i) #[K] (U/kb)
+        fi = 48*eps*(r6i*r6i-0.5*r6i) #[K] (U/kb)
         
     else:
         ui = 0
@@ -163,12 +163,12 @@ def Usf( z, eps, sig):
     #print( "Xme", Xme[Nme-1], "Xco", Xco[Nco-1], "Nco", Nco, "Nme", Nme, "d", d)
     #if( d < 0.00001 ):
         #raise ValueError('A very specific bad thing happened.')
-    ui = A*( 2/5*(sig/d)**10 - (sig/d)**4 - sig**4/( 3*del_sf*(d+0.61*del_sf)**3 ) )
-    fi = 4*A*( (sig/d)**10 - (sig/d)**4 - sig**4*d/(4*del_sf*(d + 0.61*del_sf)**4) )
+    ui = A*( 2/5*(sig/d)**10 - (sig/d)**4 - sig**4/( 3*del_sf*(d+0.61*del_sf)**3 ) ) #[K] (U/kb)
+    fi = 4*A*( (sig/d)**10 - (sig/d)**4 - sig**4*d/(4*del_sf*(d + 0.61*del_sf)**4) ) #[K] (U/kb)
 
     d = W - z
-    ui = ui + A*( 2/5*(sig/d)**10 - (sig/d)**4 - sig**4/( 3*del_sf*(d+0.61*del_sf)**3 ) )
-    fi = fi + 4*A*( (sig/d)**10 - (sig/d)**4 - sig**4*d/(4*del_sf*(d + 0.61*del_sf)**4) )
+    ui = ui + A*( 2/5*(sig/d)**10 - (sig/d)**4 - sig**4/( 3*del_sf*(d+0.61*del_sf)**3 ) ) #[K] (U/kb)
+    fi = fi + 4*A*( (sig/d)**10 - (sig/d)**4 - sig**4*d/(4*del_sf*(d + 0.61*del_sf)**4) ) #[K] (U/kb)
     
     return ui, fi
     
@@ -638,9 +638,9 @@ def sample():
     rho_me = Nme/Vol
     if( floor(Nme + Nco) == 0):
         return 0, 0, 0, 0, 0, 0
-    Enp = UT/(Nme + Nco)
-    Pressure = ( Nco/Vol/beta + Nme/Vol/beta + FT/(3*Vol))*kb*10**(-6) #[MPa]
-    return rho_co, rho_me, Enp, Pressure, Nco, Nme
+    En = UT #[K] (U/kb)
+    Pressure = ( Nco/Vol/beta + Nme/Vol/beta + FT/(3*Vol))*kb*10**(-5) #[bar]
+    return rho_co, rho_me, En, Pressure, Nco, Nme
 
 def mc_step():
     # Perform one step of simulation
@@ -701,11 +701,11 @@ def mc_run(verbose = False):
     
     if N_equil > 0:
         for j in range(N_equil):
-            mc_cycle()
+            rhocom, rhomem, Enm, Pm, Ncom, Nmem = mc_cycle()
             if( (j+1)%floor(N_equil/10) == 0 ):
                 if (verbose):
                     #print( j/N_equil )
-                    print(j+1, "\tyco:", round(Ncov[j]/(Ncov[j]+Nmev[j]), 3 ), "\tN:", round( Ncov[j] + Nmev[j] ), "\tP:", round( Pv[j], 2), "\tEn:", round( Env[j],2 ), "\tAccept%:", round( Nacc/Natt, 3), round(Aacc/Aatt, 3), round(Racc/Ratt,3 ) )
+                    print(j+1, "\tyco:", round(Ncom/(Ncom+Nmem), 3 ), "\tN:", round( Ncom + Nmem ), "\tP:", round( Pm, 2), "\tEn:", round( Enm,2 ), "\tAccept%:", round( Nacc/Natt, 3), round(Aacc/Aatt, 3), round(Racc/Ratt,3 ) )
                 Natt = 0; Nacc=0; Aatt=0; Aacc=0; Ratt=0;Racc=0 
             
 

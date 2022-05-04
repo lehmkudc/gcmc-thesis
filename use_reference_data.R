@@ -15,12 +15,19 @@ aspenData <- lapply( aspenFiles, function( filename ){
   return( dataChunk )
   
 }) %>%
-  bind_rows() %>% 
+  bind_rows()
+
+
+aspenData <- aspenData  %>% 
   mutate(
     yco = round( `Mole fraction CO2`, 1),
     t_c = round( `Temperature (K)` - 273.15, 1 ),
-    p_bar = round(`Pressure (N/sqm)`*10**(-5), 1)
+    p_bar = round(`Pressure (N/sqm)`*10**(-5), 1),
+    rhoco = yco*`Density (kg/cum)`/44.01,
+    rhome = (1-yco)*`Density (kg/cum)`/16.04
   )
+
+
 
 aspenData %>%
   group_by( t_c ) %>%

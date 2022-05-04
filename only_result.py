@@ -77,4 +77,4 @@ output['Ncov_s'] = Ncov.std()
 output['Nmev_s'] = Nmev.std()
 output['time'] = tf - t0
 
-output.to_csv( filepath )
+output.to_csv( output )

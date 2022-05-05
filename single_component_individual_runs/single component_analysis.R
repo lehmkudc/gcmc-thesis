@@ -58,7 +58,7 @@ allRunDataCO2 <- bind_rows(
   co2_30, co2_45, co2_60
 ) %>%
   mutate(
-    rhoco = rhocov*10**4/6.02
+    rhoco = rhocov*10**4/6.02 # mol/L
   )
 
 allRunDataCO2 %>%
@@ -75,7 +75,45 @@ allNistDataCO2 <- bind_rows(
 
 
 middle <- allRunDataCO2 %>%
-  filter( p_bar == 100 ) %>%
+  filter( p_bar == 200 ) %>%
+  group_by( t_c, iter ) %>%
+  summarise(
+    Pvm = mean( Pv ),
+    Envm = mean( Env ),
+    rhocom = mean( rhoco )
+  ) %>%
+  ungroup() %>%
+  mutate(
+    t_c = as.factor(t_c)
+  )
+
+ggplot()+
+  geom_smooth(
+    data = middle,
+    mapping = aes(x = iter, y = Pvm, col = t_c, group = t_c)
+  )
+
+ggplot()+
+  geom_smooth(
+    data = middle,
+    mapping = aes(x = iter, y = Envm, col = t_c, group = t_c)
+  )
+
+ggplot()+ 
+  geom_smooth(
+    data = middle,
+    mapping = aes(x = iter, y = rhocom, col = t_c, group = t_c)
+  ) +
+  geom_hline(
+    data = allNistDataCO2 %>% filter(p_bar == 100),
+    mapping = aes(yintercept = rhoco, col = t_c, group = t_c)
+  )
+
+
+
+
+middle <- allRunDataCO2 %>%
+  filter( p_bar == 200 ) %>%
   group_by( t_c, iter ) %>%
   summarise(
     Pvm = mean( Pv ),
@@ -97,10 +135,45 @@ ggplot()+
   geom_smooth(
     data = middle,
     mapping = aes(x = iter, y = rhocom, col = t_c, group = t_c)
-  ) 
+  ) +
+  geom_hline(
+    data = allNistDataCO2 %>% filter(p_bar == 200),
+    mapping = aes(yintercept = rhoco, col = t_c, group = t_c)
+  )
 
-allNistDataCO2 %>%
-  filter( p_bar == 100 )
+
+
+
+middle <- allRunDataCO2 %>%
+  filter( p_bar == 10 ) %>%
+  group_by( t_c, iter ) %>%
+  summarise(
+    Pvm = mean( Pv ),
+    Envm = mean( Env ),
+    rhocom = mean( rhoco )
+  ) %>%
+  ungroup() %>%
+  mutate(
+    t_c = as.factor(t_c)
+  )
+
+ggplot()+
+  geom_smooth(
+    data = middle,
+    mapping = aes(x = iter, y = Pvm, col = t_c, group = t_c)
+  )
+
+ggplot()+ 
+  geom_smooth(
+    data = middle,
+    mapping = aes(x = iter, y = rhocom, col = t_c, group = t_c)
+  ) +
+  geom_hline(
+    data = allNistDataCO2 %>% filter(p_bar == 10),
+    mapping = aes(yintercept = rhoco, col = t_c, group = t_c)
+  )
+
+
 
 
 at_60 <- allRunDataCO2 %>%
@@ -163,6 +236,10 @@ ggplot() +
   geom_line(
     data = allNistDataCO2,
     aes( x = p_bar, y = rhoco, color = t_c, group = t_c)
+  ) + 
+  geom_line(
+    data = pr %>% filter( yco == 1 ),
+    aes( x= p_bar, y = rho, color = t_c, group = t_c)
   )
 
 
@@ -185,38 +262,38 @@ me_60 <- combineRunData(
 )
 
 
-nist_co2_30 <- fread('reference_data/c02_30.txt')
-nist_co2_45 <- fread('reference_data/c02_45.txt')
-nist_co2_60 <- fread('reference_data/c02_60.txt')
+nist_me_30 <- fread('reference_data/me_30.txt')
+nist_me_45 <- fread('reference_data/me_45.txt')
+nist_me_60 <- fread('reference_data/me_60.txt')
 
 
-allRunDataCO2 <- bind_rows(
-  co2_30, co2_45, co2_60
+allRunDataMe <- bind_rows(
+  me_30, me_45, me_60
 ) %>%
   mutate(
-    rhoco = rhocov*10**4/6.02
+    rhome = rhomev*10**4/6.02
   )
 
-allRunDataCO2 %>%
+allRunDataMe %>%
   glimpse()
 
-allNistDataCO2 <- bind_rows(
-  nist_co2_30, nist_co2_45, nist_co2_60
+allNistDataMe <- bind_rows(
+  nist_me_30, nist_me_45, nist_me_60
 ) %>%
   mutate(
     t_c = as.factor(`Temperature (C)`),
     p_bar = `Pressure (bar)`,
-    rhoco = `Density (mol/l)`
+    rhome = `Density (mol/l)`
   )
 
 
-middle <- allRunDataCO2 %>%
+middle <- allRunDataMe %>%
   filter( p_bar == 100 ) %>%
   group_by( t_c, iter ) %>%
   summarise(
     Pvm = mean( Pv ),
     Envm = mean( Env ),
-    rhocom = mean( rhoco )
+    rhomem = mean( rhome )
   ) %>%
   ungroup() %>%
   mutate(
@@ -227,25 +304,31 @@ ggplot()+
   geom_smooth(
     data = middle,
     mapping = aes(x = iter, y = Pvm, col = t_c, group = t_c)
+  ) +
+  geom_hline(
+    data = middle,
+    mapping = aes( yintercept = 100 )
   )
 
 ggplot()+ 
   geom_smooth(
     data = middle,
-    mapping = aes(x = iter, y = rhocom, col = t_c, group = t_c)
-  ) 
+    mapping = aes(x = iter, y = rhomem, col = t_c, group = t_c)
+  ) +
+  geom_hline(
+    data = allNistDataMe %>% filter(p_bar == 100),
+    mapping = aes(yintercept = rhome, col = t_c, group = t_c)
+  )
 
-allNistDataCO2 %>%
-  filter( p_bar == 100 )
 
 
-at_60 <- allRunDataCO2 %>%
+at_60 <- allRunDataMe %>%
   filter( t_c == 60 ) %>%
   group_by( p_bar, iter ) %>%
   summarise(
     Pvm = mean( Pv ),
     Envm = mean( Env ),
-    rhocom = mean( rhoco )
+    rhomem = mean( rhome )
   ) %>%
   ungroup()
 
@@ -255,13 +338,13 @@ ggplot()+
     mapping = aes(x = iter, y = Pvm, col = p_bar, group = p_bar)
   )
 
-at_30 <- allRunDataCO2 %>%
+at_30 <- allRunDataMe %>%
   filter( t_c ==30 ) %>%
   group_by( p_bar, iter ) %>%
   summarise(
     Pvm = mean( Pv ),
     Envm = mean( Env ),
-    rhocom = mean( rhoco )
+    rhomem = mean( rhome )
   ) %>%
   ungroup()
 
@@ -277,14 +360,17 @@ ggplot()+
 # Iteration to call "equilibrated"
 targetIter <- 250
 
+
+pr = fread("reference_data/pr.csv") %>%
+  mutate( t_c = as.factor( t_c))
 # All reps Data at all pressures only result
-resultData <- allRunDataCO2 %>%
+resultData <- allRunDataMe %>%
   filter( iter > targetIter ) %>%
   group_by( exp, p_bar, t_c ) %>%
   summarise(
     Pvm = mean(Pv),
     Envm = mean(Env),
-    rhocom = mean(rhoco),
+    rhomem = mean(rhome),
     pdiff = Pvm - p_bar,
     pdiff_frac = pdiff/p_bar
   ) %>%
@@ -294,18 +380,14 @@ resultData <- allRunDataCO2 %>%
 ggplot() + 
   geom_point(
     data = resultData,
-    mapping = aes(x = p_bar, y = rhocom, color = t_c, group = t_c)
+    mapping = aes(x = p_bar, y = rhomem, color = t_c, group = t_c)
   ) + 
   geom_line(
-    data = allNistDataCO2,
-    aes( x = p_bar, y = rhoco, color = t_c, group = t_c)
+    data = allNistDataMe,
+    aes( x = p_bar, y = rhome, color = t_c, group = t_c)
+  ) + 
+  geom_line(
+    data = pr %>% filter( yco == 0),
+    aes( x= p_bar, y = rho, color = t_c, group = t_c)
   )
-
-
-
-
-
-
-
-
 

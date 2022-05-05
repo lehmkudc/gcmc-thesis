@@ -57,3 +57,8 @@ aspenData %>%
   ) %>%
   select( exp, everything() ) %>%
   write.csv("aspen_comparison.csv",row.names = FALSE)
+
+
+
+
+

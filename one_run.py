@@ -12,7 +12,7 @@ parser.add_argument("-m", "--n_moves", action = "store", dest="n_moves",type=int
 parser.add_argument("-e", "--n_equil", action = "store", dest="n_equil",type=int, default = 0)
 parser.add_argument("-o", "--n_prod", action = "store", dest="n_prod",type=int, default = 100000)
 parser.add_argument("-r", "--rep", action = "store", dest="rep",type=int, default = 0)
-parser.add_argument("-f", "--filepath", action = "store", dest="filepath",type=str, default="default")
+parser.add_argument("-f", "--filepath", action = "store", dest="filepath",type=str, default="default.csv")
 args = parser.parse_args()
 
 yco = args.yco
@@ -77,5 +77,7 @@ output['Env'] = Env
 output['Pv'] = Pv
 output['Ncov'] = Ncov
 output['Nmev'] = Nmev
+
+print( output )
 
 output.to_csv( filepath, index = False)

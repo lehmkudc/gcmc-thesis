@@ -30,6 +30,8 @@ def run_single( exp_list, i):
     
     subprocess.run(shellString, shell = True)
     
+    print( "Run " + str( i ) + " complete!")
+    
     return()
     #return( output )
 

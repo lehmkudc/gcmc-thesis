@@ -56,4 +56,4 @@ aspenData %>%
     n_prod =  as.integer( 100000)
   ) %>%
   select( exp, everything() ) %>%
-  write.csv("aspen_comparison.csv",row.names = FALSE)
+  write.csv("./aspen_comparison/aspen_comparison.csv",row.names = FALSE)

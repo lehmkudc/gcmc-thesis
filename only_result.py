@@ -6,7 +6,7 @@ exec(open("gcmc.py").read())
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-y", "--yco", action = "store", dest="yco",type=float, default = 1)
+parser.add_argument("-y", "--yco", action = "store", dest="yco",type=float, default = 0.5)
 parser.add_argument("-p", "--p_bar", action = "store", dest="p_bar",type=float, default = 20)
 parser.add_argument("-t", "--t_c", action = "store", dest="t_c",type=float, default = 45)
 parser.add_argument("-s", "--s_box", action = "store", dest="s_box",type=float, default = 34)
@@ -14,7 +14,7 @@ parser.add_argument("-m", "--n_moves", action = "store", dest="n_moves",type=int
 parser.add_argument("-e", "--n_equil", action = "store", dest="n_equil",type=int, default = 50000)
 parser.add_argument("-o", "--n_prod", action = "store", dest="n_prod",type=int, default = 10000)
 parser.add_argument("-r", "--row", action = "store", dest="row",type=int, default = 0)
-parser.add_argument("-f", "--filepath", action = "store", dest="filepath",type=str, default="default")
+parser.add_argument("-f", "--filepath", action = "store", dest="filepath",type=str, default="default.csv")
 args = parser.parse_args()
 
 
@@ -60,9 +60,12 @@ N_prod = int( np.round( n_prod/N_moves) )
 
 t0 = time()
 rhocov,rhomev,Env,Pv,Ncov, Nmev = mc_run(verbose = True)
+
+print( rhocov[0] )
 tf = time()
 
 output = pd.DataFrame()
+output['placeholder'] = [1] # Needed so dataframe actually adds column data
 output['rhocov'] = rhocov.mean()
 output['rhomev'] = rhomev.mean()
 output['Env'] = Env.mean()
@@ -77,4 +80,5 @@ output['Ncov_s'] = Ncov.std()
 output['Nmev_s'] = Nmev.std()
 output['time'] = tf - t0
 
-output.to_csv( output )
+
+output.to_csv( filepath, index = False )

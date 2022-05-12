@@ -36,7 +36,6 @@ solveZ <- function( A, B ){
   
   roots = polyroot( c(c3, c2, c1, 1))
   #roots = polyroot( c(1, c1, c2, c3) )
-  print( roots )
   
   for (r in roots){
     if(  round( Im(r), 7) == 0 ){
@@ -137,6 +136,7 @@ PR_Fugacity_Single <- function( P_res, Tr, species ){
 }
 
 PR_Zmix <- function(P_res, Tr, yco){
+  
   Tc_co = 304.2 #K
   Tc_me = 190.6 #K
   Pc_co = 73.76 #bar

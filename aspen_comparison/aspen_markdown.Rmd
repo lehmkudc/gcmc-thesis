@@ -1,0 +1,294 @@
+---
+title: "Aspen Comparison Analysis"
+author: "Marina"
+date: '2022-05-15'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Overview
+
+This experiment is to test the simulation's efficacy at replicating a simple unit cell of a mixture of gases without adsorbents with experimental data. For nature data we're using the back-end experimental data in Aspen thermodynamic simulation software. To set up this experiment we collected a range of y_co, P, and T and performed a GCMC run for each unique set. The Peng Robinson equation of state is also used here for comparison
+
+# Setup
+
+## Packages and Modules
+
+```{r}
+suppressPackageStartupMessages({
+  library( tidyverse )
+  library( data.table )
+  library(glue)
+})
+
+source( "reference_data/pr.R")
+```
+
+## Pull and Combine Aspen Data
+
+```{r}
+allFiles <- list.files("reference_data/")
+
+aspenFiles <- allFiles[ grepl( pattern = "CO2-CH4", allFiles)]
+
+aspenData <- lapply( aspenFiles, function( filename ){
+  
+  dataChunk <- fread( paste0("reference_data/", filename), skip = 1)
+  
+  return( dataChunk )
+  
+}) %>%
+  bind_rows()
+
+
+aspenData <- aspenData  %>% 
+  mutate(
+    yco = round( `Mole fraction CO2`, 1),
+    t_c = round( `Temperature (K)` - 273.15, 1 ),
+    p_bar = round(`Pressure (N/sqm)`*10**(-5), 1),
+    rhoco = yco*`Density (kg/cum)`/44.01,
+    rhome = (1-yco)*`Density (kg/cum)`/16.04,
+    source = "Aspen"
+  )
+
+aspenData %>% head()
+```
+
+## Pull and Combine GCMC Experimental Data
+
+```{r}
+homeDir <-"./aspen_comparison/"
+
+combineRunData <- function( dataDir, expListFile ){
+  
+  dataFiles <- list.files(dataDir)
+  expList <- fread(  expListFile )
+  
+  # all the raw data
+  rawDataTable <- lapply( dataFiles, function(file){
+    
+    exp <- str_remove( file, pattern = ".csv")
+    
+    expInputs <- expList %>%
+      filter( exp == !!exp )
+    
+    expOutputs <- fread( paste0( dataDir, file ) )
+    
+    
+    expData <- bind_cols(expInputs, expOutputs) %>%
+      mutate( iter = 1:n() )
+    
+    return( expData )
+    
+  }) %>% bind_rows
+  
+  return( rawDataTable )
+}
+
+aspenRunData <- combineRunData(
+  paste0(homeDir, "data/"),
+  paste0(homeDir, "aspen_comparison.csv")
+) %>%
+  mutate(
+    rhocov = rhocov*10000/6.02,
+    rhomev = rhomev*10000/6.02
+  )
+
+aspenRunData %>% head()
+```
+
+## Combine the 3 Sources (Aspen, GCMC, pr)
+
+```{r}
+R = 0.0831446261815324 #[L bar/K mol]
+comparisonData <- aspenData %>%
+  filter( t_c < 80) %>%
+  filter( t_c >= 30) %>%
+  filter( p_bar < 250 ) %>%
+  select( yco, t_c, p_bar, rhoco, rhome) %>%
+  left_join(
+    aspenRunData %>%
+      select( yco, t_c, p_bar, Pv, Env, rhocov, rhomev ),
+    by = c("yco", "t_c", "p_bar")
+  ) %>%
+  rowwise() %>%
+  mutate(
+    z_pr = PR_Zmix(p_bar, t_c + 273.15, yco ),
+    rho_pr = p_bar/(z_pr*R*(t_c+273.15)), #[mol/L]
+    rhoco_pr = yco*rho_pr,
+    rhome_pr = (1-yco)*rho_pr
+  )
+
+comparisonDataFull <- aspenData %>%
+  select( yco, t_c, p_bar, rhoco, rhome) %>%
+  left_join(
+    aspenRunData %>%
+      select( yco, t_c, p_bar, Pv, Env, rhocov, rhomev ),
+    by = c("yco", "t_c", "p_bar")
+  ) %>%
+  rowwise() %>%
+  mutate(
+    z_pr = PR_Zmix(p_bar, t_c + 273.15, yco ),
+    rho_pr = p_bar/(z_pr*R*(t_c+273.15)), #[mol/L]
+    rhoco_pr = yco*rho_pr,
+    rhome_pr = (1-yco)*rho_pr
+  )
+
+theme_set(
+  theme_light()
+)
+
+comparisonData %>% glimpse()
+comparisonDataFull %>% glimpse()
+```
+
+# Focused Dataset
+
+```{r}
+ggplot( comparisonData ) +
+  geom_point(
+    aes( x = yco, y = p_bar, col = t_c )
+  ) +
+  scale_color_gradient(low = "blue", high = "red") +
+  ggtitle("Span of provided data from Aspen") +
+  labs(
+    x = "Mole Fraction CO2",
+    y = "Reservoir Pressure [bar]",
+    col = "Temperature [C]"
+  )
+```
+
+Here is the range of data used within the bounds of 30 to 80 \*C and under 200 bar. While not completely representative across a range of values, it can serve as a quick glance of our simulation's effectiveness.
+
+## Mole Fraction
+
+```{r}
+ggplot( comparisonData ) +
+  geom_point(
+    aes( x = yco, y = rhocov/(rhocov + rhomev), col = t_c ),
+    alpha = 0.2
+  ) +
+  scale_color_gradient(low = "blue", high = "red") +
+  ggtitle("Mole Fraction Deviation") +
+  labs(
+    x = "Reservoir Mole Fraction CO2",
+    y = "Simulated Mole Fraction CO2",
+    col = "Temperature [C]"
+  )
+
+ggplot( comparisonData ) +
+  geom_point(
+    aes( x = yco, y = rhocov/(rhocov + rhomev), col = p_bar ),
+    alpha = 0.2
+  ) +
+  scale_color_gradient(low = "blue", high = "green") +
+  ggtitle("Mole Fraction Deviation") +
+  labs(
+    x = "Reservoir Mole Fraction CO2",
+    y = "Simulated Mole Fraction CO2",
+    col = "Pressure [bar]"
+  )
+
+
+ggplot( comparisonData ) +
+  geom_point(
+    aes( x = yco, y = yco - rhocov/(rhocov + rhomev), col = t_c )
+  ) +
+  scale_color_gradient(low = "blue", high = "red") +
+  ggtitle("Mole Fraction Deviation (recentered)") +
+  labs(
+    x = "Reservoir Mole Fraction CO2",
+    y = "Simulation Mole Fraction CO2",
+    col = "Temperature [C]"
+  )
+
+ggplot( comparisonData ) +
+  geom_point(
+    aes( x = yco, y = yco - rhocov/(rhocov + rhomev), col = p_bar )
+  ) +
+  scale_color_gradient(low = "blue", high = "yellow") +
+  ggtitle("Mole Fraction Deviation (recentered)") +
+  labs(
+    x = "Reservoir Mole Fraction CO2",
+    y = "Simulation Mole Fraction CO2",
+    col = "Pressure [bar]"
+  )
+```
+
+This plot demonstrates the mole fraction difference between reservoir and unit cell. Since there is no adsorbent, there should be no difference between the two and any consistent bias suggests an issue with the simulation's accuracy. Unfortunately due to the available data we don't have much to go on here. While there is a suggestion of an overestimation of CO2 in simulation at higher Mole fractions of CO2, there isn't enough of a range of data to confirm.
+
+```{r}
+
+```
+
+## Simulation Pressure
+
+```{r}
+ggplot( comparisonData ) +
+  geom_point(
+    aes( x = p_bar, y = Pv, col = yco ),
+    alpha = 1
+  ) +
+  geom_line(
+    aes( x = p_bar, y = p_bar)
+  ) +
+  scale_color_gradient(low = "blue", high = "yellow") +
+  ggtitle("Pressure Simulation Integrity") +
+  labs(
+    x = "Reservoir Pressure [bar]",
+    y = "Simulation Pressure [bar]",
+    col = "Mol. Frac CO2"
+  )
+
+ggplot( comparisonData ) +
+  geom_point(
+    aes( x = p_bar, y = Pv, col = t_c ),
+    alpha = 1
+  ) +
+  geom_line(
+    aes( x = p_bar, y = p_bar)
+  ) +
+  scale_color_gradient(low = "blue", high = "red") +
+  ggtitle("Pressure Simulation Integrity") +
+  labs(
+    x = "Reservoir Pressure [bar]",
+    y = "Simulation Pressure [bar]",
+    col = "Temp [C]"
+  )
+
+
+ggplot( comparisonData ) +
+  geom_point(
+    aes( x = p_bar, y = Pv - p_bar, col = yco ),
+    alpha = 1
+  ) +
+  geom_hline( yintercept = 0 ) +
+  scale_color_gradient(low = "blue", high = "yellow") +
+  ggtitle("Pressure Simulation Integrity") +
+  labs(
+    x = "Reservoir Pressure [bar]",
+    y = "Pressure Difference [bar]",
+    col = "Mol. Frac CO2"
+  )
+
+ggplot( comparisonData ) +
+  geom_point(
+    aes( x = p_bar, y = Pv - p_bar, col = t_c ),
+    alpha = 1
+  ) +
+  geom_hline( yintercept = 0 ) +
+  scale_color_gradient(low = "blue", high = "red") +
+  ggtitle("Pressure Simulation Integrity") +
+  labs(
+    x = "Reservoir Pressure [bar]",
+    y = "Pressure Difference [bar]",
+    col = "Temp [C]"
+  )
+```
+
+These plots demonstrate the differences in pressure between the reservoir (Aspen) and the unit cell (GCMC). In a perfectly working simulation, these values would be the same as there are no adsorbents to impact the sum of forces on the particles. As shown in the difference plots, the simulation is consistently representing lower pressures in the unit cell across all pressures. The difference in pressure gets worse at higher pressures and at higher temperatures.
+
+Hypothesis: I suspect the difference is due to a mismatch in calculated chemical potential by PR as an input to the system and/or a misrepresentation of CO2's Lennard-Jones force field. A higher temp/pressure means more particles in the system for the effect of CO2 discrepancy to take place.

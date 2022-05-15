@@ -15,6 +15,10 @@ parser.add_argument("-e", "--n_equil", action = "store", dest="n_equil",type=int
 parser.add_argument("-o", "--n_prod", action = "store", dest="n_prod",type=int, default = 10000)
 parser.add_argument("-r", "--row", action = "store", dest="row",type=int, default = 0)
 parser.add_argument("-f", "--filepath", action = "store", dest="filepath",type=str, default="default.csv")
+parser.add_argument("--e_co", action = "store", dest="e_co",type=float, default = 242.0)
+parser.add_argument("--s_co", action = "store", dest="s_co",type=float, default = 3.615)
+parser.add_argument("--e_me", action = "store", dest="e_me",type=float, default = 147.9)
+parser.add_argument("--s_me", action = "store", dest="s_me",type=float, default = 3.73)
 args = parser.parse_args()
 
 
@@ -26,6 +30,10 @@ n_moves = args.n_moves
 n_equil = args.n_equil
 n_prod = args.n_prod
 row = args.row
+e_co = args.e_co
+s_co = args.s_co
+e_me = args.e_me
+s_me = args.s_me
 filepath = args.filepath
 
 P_res = P_bar*10**5 #[Pa]
@@ -39,6 +47,30 @@ rho_sf = "Nothing"#0.114 #[A^-3]
 W = "Nothing"#5*3.8 #[A] relative to diameter of methane 3.80A
 sf = False
 mega_verbose = False
+
+
+
+e_c = 28.0 # eps over kb[K] # Activated is 89.44
+s_c = 3.4  # sigma [A]
+
+# Surface of carbons
+e_csf = 28.0 # es over kb[K]
+s_csf = 3.40 # sigma [A]
+
+e_meco = np.sqrt(e_me*e_co)
+s_meco = (s_me+s_co)/2
+
+e_cme = np.sqrt(e_me*e_c)
+s_cme = (s_me+s_c)/2
+
+e_cco = np.sqrt(e_co*e_c)
+s_cco = (s_co + s_c)/2
+
+e_cosf = np.sqrt(e_co*e_csf)
+s_cosf = (s_co + s_csf)/2
+
+e_mesf = np.sqrt(e_me*e_csf)
+s_mesf = (s_me + s_csf)/2
 
 s_box = s_box #[A]
 N_max = 50000

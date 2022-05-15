@@ -1,8 +1,9 @@
 
-
-library( tidyverse )
-library( data.table )
-library(glue)
+suppressPackageStartupMessages({
+  library( tidyverse )
+  library( data.table )
+  library(glue)
+})
 
 source( "reference_data/pr.R")
 
@@ -61,7 +62,6 @@ combineRunData <- function( dataDir, expListFile ){
   return( rawDataTable )
 }
 
-
 aspenRunData <- combineRunData(
   paste0(homeDir, "data/"),
   paste0(homeDir, "aspen_comparison.csv")
@@ -74,7 +74,7 @@ aspenRunData <- combineRunData(
 R = 0.0831446261815324 #[L bar/K mol]
 comparisonData <- aspenData %>%
   filter( t_c < 80) %>%
-  filter( t_c > 25) %>%
+  filter( t_c >= 30) %>%
   filter( p_bar < 250 ) %>%
   select( yco, t_c, p_bar, rhoco, rhome) %>%
   left_join(
@@ -95,6 +95,7 @@ theme_set(
   theme_light()
 )
 
+#### Overall Plots ####
 ggplot( comparisonData ) +
   geom_point(
     aes( x = yco, y = p_bar, col = t_c )
@@ -108,7 +109,7 @@ ggplot( comparisonData ) +
   )
 
 
-
+#### Mole Fraction Aspen vs GCMC ####
 ggplot( comparisonData ) +
   geom_point(
     aes( x = yco, y = rhocov/(rhocov + rhomev), col = t_c ),
@@ -122,7 +123,6 @@ ggplot( comparisonData ) +
     col = "Temperature [C]"
   )
 
-
 ggplot( comparisonData ) +
   geom_point(
     aes( x = yco, y = yco - rhocov/(rhocov + rhomev), col = t_c )
@@ -135,6 +135,17 @@ ggplot( comparisonData ) +
     col = "Temperature [C]"
   )
 
+ggplot( comparisonData ) +
+  geom_point(
+    aes( x = yco, y = yco - rhocov/(rhocov + rhomev), col = p_bar )
+  ) +
+  scale_color_gradient(low = "blue", high = "yellow") +
+  ggtitle("Mole Fraction Deviation (recentered)") +
+  labs(
+    x = "Reservoir Mole Fraction CO2",
+    y = "Simulation Mole Fraction CO2",
+    col = "Pressure [bar]"
+  )
 
 
 
@@ -173,6 +184,7 @@ ggplot( comparisonData ) +
   )
 
 
+#### CO2 Aspen v GCMC ####
 ggplot( comparisonData ) +
   geom_point(
     aes( x = rhoco, y = rhocov, col = t_c ),
@@ -226,7 +238,7 @@ ggplot( comparisonData ) +
 
 
 
-
+#### CH4 Aspen v GCMC ####
 ggplot( comparisonData ) +
   geom_point(
     aes( x = rhome, y = rhomev, col = t_c ),
@@ -264,7 +276,7 @@ ggplot( comparisonData ) +
 
 ggplot( comparisonData ) +
   geom_point(
-    aes( x = rhome, y = rhomev, col = yco ),
+    aes( x = rhome, y = rhomev, col = (1-yco) ),
     alpha = 1
   ) +
   geom_line(
@@ -274,12 +286,176 @@ ggplot( comparisonData ) +
   ggtitle("Component Density Comparison") +
   labs(
     x = "Aspen Density CH4 [mol/L]",
-    y = "Simulation Density CO2 [mol/L]",
-    col = "Mol. Frac CO2"
+    y = "Simulation Density CH4 [mol/L]",
+    col = "Mol. Frac CH4"
   )
 
 
 
+
+
+
+#### CH4 Aspen v PR ####
+ggplot( comparisonData ) +
+  geom_point(
+    aes( x = rhome, y = rhome_pr, col = t_c ),
+    alpha = 1
+  ) +
+  geom_line(
+    aes( x = rhome, y = rhome)
+  ) +
+  scale_color_gradient(low = "blue", high = "red") +
+  ggtitle("Component Density Comparison") +
+  labs(
+    x = "Aspen Density CH4 [mol/L]",
+    y = "PR Density CH4 [mol/L]",
+    col = "Temp [C]"
+  )
+
+
+ggplot( comparisonData ) +
+  geom_point(
+    aes( x = rhome, y = rhome_pr, col = p_bar ),
+    alpha = 1
+  ) +
+  geom_line(
+    aes( x = rhome, y = rhome)
+  ) +
+  scale_color_gradient(low = "blue", high = "green") +
+  ggtitle("Component Density Comparison") +
+  labs(
+    x = "Aspen Density CH4 [mol/L]",
+    y = "PR Density CH4 [mol/L]",
+    col = "Pressure [bar]"
+  )
+
+
+ggplot( comparisonData ) +
+  geom_point(
+    aes( x = rhome, y = rhome_pr, col = (1-yco) ),
+    alpha = 1
+  ) +
+  geom_line(
+    aes( x = rhome, y = rhome)
+  ) +
+  scale_color_gradient(low = "blue", high = "yellow") +
+  ggtitle("Component Density Comparison") +
+  labs(
+    x = "Aspen Density CH4 [mol/L]",
+    y = "PR Density CH4 [mol/L]",
+    col = "Mol. Frac CH4"
+  )
+
+
+
+
+
+
+
+#### CH4 PR v GCMC ####
+ggplot( comparisonData ) +
+  geom_point(
+    aes( x = rhome_pr, y = rhomev, col = t_c ),
+    alpha = 1
+  ) +
+  geom_line(
+    aes( x = rhome_pr, y = rhome_pr)
+  ) +
+  scale_color_gradient(low = "blue", high = "red") +
+  ggtitle("Component Density Comparison") +
+  labs(
+    y = "Simulation Density CH4 [mol/L]",
+    x = "PR Density CH4 [mol/L]",
+    col = "Temp [C]"
+  )
+
+
+ggplot( comparisonData ) +
+  geom_point(
+    aes( x = rhome_pr, y = rhomev, col = p_bar ),
+    alpha = 1
+  ) +
+  geom_line(
+    aes( x = rhome_pr, y = rhome_pr)
+  ) +
+  scale_color_gradient(low = "blue", high = "green") +
+  ggtitle("Component Density Comparison") +
+  labs(
+    y = "Simulation Density CH4 [mol/L]",
+    x = "PR Density CH4 [mol/L]",
+    col = "Pressure [bar]"
+  )
+
+
+ggplot( comparisonData ) +
+  geom_point(
+    aes( x = rhome_pr, y = rhomev, col = (1-yco) ),
+    alpha = 1
+  ) +
+  geom_line(
+    aes( x = rhome_pr, y = rhome_pr)
+  ) +
+  scale_color_gradient(low = "blue", high = "yellow") +
+  ggtitle("Component Density Comparison") +
+  labs(
+    y = "Simluation Density CH4 [mol/L]",
+    x = "PR Density CH4 [mol/L]",
+    col = "Mol. Frac CH4"
+  )
+
+
+
+
+#### CO2 PR v GCMC ####
+ggplot( comparisonData ) +
+  geom_point(
+    aes( x = rhoco_pr, y = rhocov, col = t_c ),
+    alpha = 1
+  ) +
+  geom_line(
+    aes( x = rhoco_pr, y = rhoco_pr)
+  ) +
+  scale_color_gradient(low = "blue", high = "red") +
+  ggtitle("Component Density Comparison") +
+  labs(
+    x = "PR Density CO2 [mol/L]",
+    y = "Simulation Density CO2 [mol/L]",
+    col = "Temp [C]"
+  )
+
+
+ggplot( comparisonData ) +
+  geom_point(
+    aes( x = rhoco_pr, y = rhocov, col = p_bar ),
+    alpha = 1
+  ) +
+  geom_line(
+    aes( x = rhoco_pr, y = rhoco_pr)
+  ) +
+  scale_color_gradient(low = "blue", high = "green") +
+  ggtitle("Component Density Comparison") +
+  labs(
+    x = "PR Density CO2 [mol/L]",
+    y = "Simulation Density CO2 [mol/L]",
+    col = "Pressure [bar]"
+  )
+
+
+ggplot( comparisonData ) +
+  geom_point(
+    aes( x = rhoco_pr, y = rhocov, col = yco ),
+    alpha = 1
+  ) +
+  geom_line(
+    aes( x = rhoco_pr, y = rhoco_pr)
+  ) +
+  scale_color_gradient(low = "blue", high = "yellow") +
+  ggtitle("Component Density Comparison") +
+  labs(
+    x = "PR Density CO2 [mol/L]",
+    y = "Simulation Density CO2 [mol/L]",
+    col = "Mol. Frac CO2"
+  )
 
 
 

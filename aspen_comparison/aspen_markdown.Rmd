@@ -220,10 +220,6 @@ ggplot( comparisonData ) +
 
 This plot demonstrates the mole fraction difference between reservoir and unit cell. Since there is no adsorbent, there should be no difference between the two and any consistent bias suggests an issue with the simulation's accuracy. Unfortunately due to the available data we don't have much to go on here. While there is a suggestion of an overestimation of CO2 in simulation at higher Mole fractions of CO2, there isn't enough of a range of data to confirm.
 
-```{r}
-
-```
-
 ## Simulation Pressure
 
 ```{r}
@@ -292,3 +288,223 @@ ggplot( comparisonData ) +
 These plots demonstrate the differences in pressure between the reservoir (Aspen) and the unit cell (GCMC). In a perfectly working simulation, these values would be the same as there are no adsorbents to impact the sum of forces on the particles. As shown in the difference plots, the simulation is consistently representing lower pressures in the unit cell across all pressures. The difference in pressure gets worse at higher pressures and at higher temperatures.
 
 Hypothesis: I suspect the difference is due to a mismatch in calculated chemical potential by PR as an input to the system and/or a misrepresentation of CO2's Lennard-Jones force field. A higher temp/pressure means more particles in the system for the effect of CO2 discrepancy to take place.
+
+## Density Aspen vs GCMC
+
+```{r}
+#### CO2 Aspen v GCMC ####
+ggplot( comparisonData ) +
+  geom_point(
+    aes( x = rhoco, y = rhocov, col = t_c ),
+    alpha = 1
+  ) +
+  geom_line(
+    aes( x = rhoco, y = rhoco)
+  ) +
+  scale_color_gradient(low = "blue", high = "red") +
+  ggtitle("Component Density Comparison") +
+  labs(
+    x = "Aspen Density CO2 [mol/L]",
+    y = "Simulation Density CO2 [mol/L]",
+    col = "Temp [C]"
+  )
+
+
+ggplot( comparisonData ) +
+  geom_point(
+    aes( x = rhoco, y = rhocov, col = p_bar ),
+    alpha = 1
+  ) +
+  geom_line(
+    aes( x = rhoco, y = rhoco)
+  ) +
+  scale_color_gradient(low = "blue", high = "green") +
+  ggtitle("Component Density Comparison") +
+  labs(
+    x = "Aspen Density CO2 [mol/L]",
+    y = "Simulation Density CO2 [mol/L]",
+    col = "Pressure [bar]"
+  )
+
+
+ggplot( comparisonData ) +
+  geom_point(
+    aes( x = rhoco, y = rhocov, col = yco ),
+    alpha = 1
+  ) +
+  geom_line(
+    aes( x = rhoco, y = rhoco)
+  ) +
+  scale_color_gradient(low = "blue", high = "yellow") +
+  ggtitle("Component Density Comparison") +
+  labs(
+    x = "Aspen Density CO2 [mol/L]",
+    y = "Simulation Density CO2 [mol/L]",
+    col = "Mol. Frac CO2"
+  )
+
+
+
+
+#### CH4 Aspen v GCMC ####
+ggplot( comparisonData ) +
+  geom_point(
+    aes( x = rhome, y = rhomev, col = t_c ),
+    alpha = 1
+  ) +
+  geom_line(
+    aes( x = rhome, y = rhome)
+  ) +
+  scale_color_gradient(low = "blue", high = "red") +
+  ggtitle("Component Density Comparison") +
+  labs(
+    x = "Aspen Density CH4 [mol/L]",
+    y = "Simulation Density CO2 [mol/L]",
+    col = "Temp [C]"
+  )
+
+
+ggplot( comparisonData ) +
+  geom_point(
+    aes( x = rhome, y = rhomev, col = p_bar ),
+    alpha = 1
+  ) +
+  geom_line(
+    aes( x = rhome, y = rhome)
+  ) +
+  scale_color_gradient(low = "blue", high = "green") +
+  ggtitle("Component Density Comparison") +
+  labs(
+    x = "Aspen Density CH4 [mol/L]",
+    y = "Simulation Density CO2 [mol/L]",
+    col = "Pressure [bar]"
+  )
+
+
+
+ggplot( comparisonData ) +
+  geom_point(
+    aes( x = rhome, y = rhomev, col = (1-yco) ),
+    alpha = 1
+  ) +
+  geom_line(
+    aes( x = rhome, y = rhome)
+  ) +
+  scale_color_gradient(low = "blue", high = "yellow") +
+  ggtitle("Component Density Comparison") +
+  labs(
+    x = "Aspen Density CH4 [mol/L]",
+    y = "Simulation Density CH4 [mol/L]",
+    col = "Mol. Frac CH4"
+  )
+```
+
+Contrary to the single component comparison results, the CO2 partial densities show no significant bias away from experimental Aspen results. However, there is a clear discrepancy in the CH4 results where the simulation is significantly under-representing the density. The issue gets worse the less CH4 in the system there is. This provides some evidence away from CO2 LJ parameters being the critical issue, although the issue does get worse with more CO2.
+
+## Density Aspen vs PR
+
+```{r}
+#### CO2 Aspen v PR ####
+ggplot( comparisonData ) +
+  geom_point(
+    aes( x = rhoco, y = rhoco_pr, col = t_c ),
+    alpha = 1
+  ) +
+  geom_line(
+    aes( x = rhoco, y = rhoco)
+  ) +
+  scale_color_gradient(low = "blue", high = "red") +
+  ggtitle("Component Density Comparison") +
+  labs(
+    x = "Aspen Density CO2 [mol/L]",
+    y = "PR Density CO2 [mol/L]",
+    col = "Temp [C]"
+  )
+
+
+ggplot( comparisonData ) +
+  geom_point(
+    aes( x = rhoco, y = rhoco_pr, col = p_bar ),
+    alpha = 1
+  ) +
+  geom_line(
+    aes( x = rhoco, y = rhoco)
+  ) +
+  scale_color_gradient(low = "blue", high = "green") +
+  ggtitle("Component Density Comparison") +
+  labs(
+    x = "Aspen Density CO2 [mol/L]",
+    y = "PR Density CO2 [mol/L]",
+    col = "Pressure [bar]"
+  )
+
+
+ggplot( comparisonData ) +
+  geom_point(
+    aes( x = rhoco, y = rhoco_pr, col = yco ),
+    alpha = 1
+  ) +
+  geom_line(
+    aes( x = rhoco, y = rhoco)
+  ) +
+  scale_color_gradient(low = "blue", high = "yellow") +
+  ggtitle("Component Density Comparison") +
+  labs(
+    x = "Aspen Density CO2 [mol/L]",
+    y = "PR Density CO2 [mol/L]",
+    col = "Mol. Frac CO2"
+  )
+
+
+
+#### CH4 Aspen v PR ####
+ggplot( comparisonData ) +
+  geom_point(
+    aes( x = rhome, y = rhome_pr, col = t_c ),
+    alpha = 1
+  ) +
+  geom_line(
+    aes( x = rhome, y = rhome)
+  ) +
+  scale_color_gradient(low = "blue", high = "red") +
+  ggtitle("Component Density Comparison") +
+  labs(
+    x = "Aspen Density CH4 [mol/L]",
+    y = "PR Density CH4 [mol/L]",
+    col = "Temp [C]"
+  )
+
+
+ggplot( comparisonData ) +
+  geom_point(
+    aes( x = rhome, y = rhome_pr, col = p_bar ),
+    alpha = 1
+  ) +
+  geom_line(
+    aes( x = rhome, y = rhome)
+  ) +
+  scale_color_gradient(low = "blue", high = "green") +
+  ggtitle("Component Density Comparison") +
+  labs(
+    x = "Aspen Density CH4 [mol/L]",
+    y = "PR Density CH4 [mol/L]",
+    col = "Pressure [bar]"
+  )
+
+
+ggplot( comparisonData ) +
+  geom_point(
+    aes( x = rhome, y = rhome_pr, col = (1-yco) ),
+    alpha = 1
+  ) +
+  geom_line(
+    aes( x = rhome, y = rhome)
+  ) +
+  scale_color_gradient(low = "blue", high = "yellow") +
+  ggtitle("Component Density Comparison") +
+  labs(
+    x = "Aspen Density CH4 [mol/L]",
+    y = "PR Density CH4 [mol/L]",
+    col = "Mol. Frac CH4"
+  )
+```

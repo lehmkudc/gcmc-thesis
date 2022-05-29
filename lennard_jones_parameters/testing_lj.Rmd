@@ -1,0 +1,322 @@
+---
+title: "Aspen Comparison Analysis"
+author: "Marina"
+date: '2022-05-15'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Overview
+
+One prevailing theory for why our simulations are showing significant bias away from experimental data and Peng-Robinson is that our Lennard-Jones force field isn't adequately modeling the behavior of gas particles in an otherwise empty unit cell. While a basic Lennard Jones force field using the equation used above is suitable for many basic simulations, it assumes that the particles are spherical with no polar effects. In the case of CO2, that assumption fails and may be what's causing our issues. While we won't be incorporating more advanced force fields, we can try a few Lennard Jones parameters to see which ones work best at this temperature and pressure range to alleviate this problem somewhat.
+
+## Load the Data
+
+```{r}
+suppressPackageStartupMessages({
+  library( tidyverse )
+  library( data.table )
+  library(glue)
+})
+
+source( "./reference_data/pr.R")
+
+combineRunData <- function( dataDir, expListFile ){
+  
+  dataFiles <- list.files(dataDir)
+  expList <- fread(  expListFile )
+  
+  # all the raw data
+  rawDataTable <- lapply( dataFiles, function(file){
+    
+    exp <- str_remove( file, pattern = ".csv")
+    
+    expInputs <- expList %>%
+      filter( exp == !!exp )
+    
+    expOutputs <- fread( paste0( dataDir, file ) )
+    
+    
+    expData <- bind_cols(expInputs, expOutputs) %>%
+      mutate( iter = 1:n() )
+    
+    return( expData )
+    
+  }) %>% bind_rows
+  
+  return( rawDataTable )
+}
+
+# homeDir <-"./lennard_jones_parameters/"
+# 
+# df_lj1 <- combineRunData(
+#   paste0(homeDir, "testing_lj1/"),
+#   paste0(homeDir, "testing_lj1.csv")
+# ) %>%
+#   mutate(
+#     rhocov = rhocov*10000/6.02,
+#     rhomev = rhomev*10000/6.02
+#   )
+
+```
+
+## NIST Thermophysical Data
+
+```{r}
+
+nist_co2_30 <- fread('reference_data/c02_30.txt')
+nist_co2_45 <- fread('reference_data/c02_45.txt')
+nist_co2_60 <- fread('reference_data/c02_60.txt')
+
+allNistDataCO2 <- bind_rows(
+  nist_co2_30, nist_co2_45, nist_co2_60
+) %>%
+  mutate(
+    t_c = as.factor(`Temperature (C)`),
+    p_bar = `Pressure (bar)`,
+    rhoco = `Density (mol/l)`,
+    yco = 1
+  )
+
+
+allNistDataCO2 %>% head()
+
+nist_me_30 <- fread('reference_data/me_30.txt')
+nist_me_45 <- fread('reference_data/me_45.txt')
+nist_me_60 <- fread('reference_data/me_60.txt')
+
+allNistDataMe <- bind_rows(
+  nist_me_30, nist_me_45, nist_me_60
+) %>%
+  mutate(
+    t_c = as.factor(`Temperature (C)`),
+    p_bar = `Pressure (bar)`,
+    rhome = `Density (mol/l)`,
+    yco = 0
+  )
+
+
+allNistDataMe %>% head()
+
+
+allNistData <- bind_rows(
+  allNistDataCO2,
+  allNistDataMe
+) %>%
+  mutate(
+    source = "NIST"
+  )
+  
+allNistData %>% head()
+```
+
+## Original Lennard-Jones (0)
+
+```{r}
+homeDir <-"./single_component_individual_runs/lower_p/"
+
+co2_30 <- combineRunData(
+  paste0(homeDir, "only_co2_30/"),
+  paste0( homeDir, "only_co2_30.csv" )
+)
+
+co2_45 <- combineRunData(
+  paste0(homeDir, "only_co2_45/"),
+  paste0( homeDir, "only_co2_45.csv" )
+)
+
+co2_60 <- combineRunData(
+  paste0(homeDir, "only_co2_60/"),
+  paste0( homeDir, "only_co2_60.csv" )
+)
+
+co2_lj_0 <- bind_rows(
+  co2_30, co2_45, co2_60
+)
+
+co2_lj_0 %>% head()
+
+
+me_30 <- combineRunData(
+  paste0(homeDir, "only_me_30/"),
+  paste0( homeDir, "only_me_30.csv" )
+)
+
+me_45 <- combineRunData(
+  paste0(homeDir, "only_me_45/"),
+  paste0( homeDir, "only_me_45.csv" )
+)
+
+me_60 <- combineRunData(
+  paste0(homeDir, "only_me_60/"),
+  paste0( homeDir, "only_me_60.csv" )
+)
+
+me_lj_0 <- bind_rows(
+  me_30, me_45, me_60
+)
+
+me_lj_0 %>% head()
+
+lj_0 <- bind_rows(
+  co2_lj_0, me_lj_0
+) %>%
+  mutate( 
+    rhoco = rhocov*10**4/6.02 ,
+    rhome = rhomev*10**4/6.02, 
+    t_c = as.factor( t_c )
+  ) %>%
+  filter( iter > 750 ) %>%
+  group_by( exp, yco, p_bar, t_c ) %>%
+  summarize(
+    rhoco = mean( rhoco ),
+    rhome = mean( rhome ),
+    source = "LJ0",
+    .groups = "keep"
+  )
+
+lj_0 %>% head()
+```
+
+## Lennard-Jones 1 thru 3
+
+```{r}
+homeDir <-"./lennard_jones_parameters/"
+
+lj_1 <- combineRunData(
+  paste0(homeDir, "testing_lj1/"),
+  paste0(homeDir, "testing_lj1.csv")
+) %>%
+  mutate( 
+    rhoco = rhocov*10**4/6.02 ,
+    rhome = rhomev*10**4/6.02, 
+    source = "LJ1",
+    t_c = as.factor( t_c )
+  )
+
+lj_2 <- combineRunData(
+  paste0(homeDir, "testing_lj2/"),
+  paste0(homeDir, "testing_lj2.csv")
+) %>%
+  mutate( 
+    rhoco = rhocov*10**4/6.02 ,
+    rhome = rhomev*10**4/6.02, 
+    source = "LJ2",
+    t_c = as.factor( t_c )
+  )
+
+lj_3 <- combineRunData(
+  paste0(homeDir, "testing_lj3/"),
+  paste0(homeDir, "testing_lj3.csv")
+) %>%
+  mutate( 
+    rhoco = rhocov*10**4/6.02 ,
+    rhome = rhomev*10**4/6.02, 
+    source = "LJ3",
+    t_c = as.factor( t_c )
+  )
+
+
+lj_1 %>% head()
+```
+
+```{r}
+
+testing_lj <- combineRunData(
+  paste0(homeDir, "testing_lj2/"),
+  paste0(homeDir, "testing_lj2.csv")
+) %>%
+  select( exp, yco, p_bar, t_c, rhocov, rhomev)
+
+
+testing_lj %>%
+  filter( yco == 0) %>%
+  filter( t_c == 45 )
+```
+
+## Peng-Robinson
+
+```{r}
+pr <- fread( "reference_data/pr.csv" ) %>%
+  mutate(
+    rhoco = yco*rho,
+    rhome = (1-yco)*rho,
+    source = "PR",
+    t_c = as.factor( t_c )
+  )
+```
+
+## Combine all
+
+```{r}
+allRunData <- bind_rows(
+  allNistData,
+  lj_0, lj_1, lj_2, lj_3,
+  pr
+) %>%
+  select( yco, t_c, p_bar, rhoco, rhome, source )
+
+allRunData %>%
+  head()
+```
+
+```{r}
+filteredData <- allRunData %>%
+  filter( yco == 1 ) %>%
+  filter( t_c == 45 )
+
+ggplot() +
+  geom_point(
+    data = filteredData,
+    mapping = aes(
+      x = p_bar,
+      y = rhoco,
+      col = source,
+      group = source
+    )
+  )
+
+ggplot() +
+  stat_smooth(
+    data = filteredData,
+    mapping = aes(
+      x = p_bar,
+      y = rhoco,
+      col = source,
+      group = source
+    )
+  )
+```
+
+```{r}
+filteredData <- allRunData %>%
+  filter( yco == 0 ) %>%
+  filter( t_c == 45 )
+
+ggplot() +
+  geom_point(
+    data = filteredData,
+    mapping = aes(
+      x = p_bar,
+      y = rhome,
+      col = source,
+      group = source
+    ),
+    alpha = 0.5
+  )
+
+ggplot() +
+  stat_smooth(
+    data = filteredData,
+    mapping = aes(
+      x = p_bar,
+      y = rhome,
+      col = source,
+      group = source
+    ),
+    alpha = 0.5
+  )
+```

@@ -6,8 +6,8 @@ import pandas as pd
 from multiprocessing import Pool, cpu_count
 
 
-exp_filepath = "lennard_jones_parameters/testing_lj3.csv"
-data_filepath = "lennard_jones_parameters/testing_lj3/"
+exp_filepath = "mixture_grid/mixtures1.csv"
+data_filepath = "mixture_grid/mixtures1/"
 run_script = "only_result.py"
 
 # print( "Available CPU:", cpu_count() )
@@ -21,17 +21,17 @@ def run_single( exp_list, i):
     n_equil = int( exp_list.n_equil[i] )
     n_prod = int( exp_list.n_prod[i] )
     filepath = data_filepath + "/" + str(exp_list.exp[i]) + ".csv"
-    e_co = int( exp_list.e_co[i] )
-    s_co = int( exp_list.s_co[i] )
-    e_me = int( exp_list.e_me[i] )
-    s_me = int( exp_list.s_me[i] )
+    #e_co = int( exp_list.e_co[i] )
+    #s_co = int( exp_list.s_co[i] )
+    #e_me = int( exp_list.e_me[i] )
+    #s_me = int( exp_list.s_me[i] )
     
     shellString = (
         "python " + run_script + " -y " + str(yco) + " -p " + str(p_bar) + 
         " -t " + str(t_c) + " -s " + str(s_box) + " -m " + str(n_moves) + 
-        " -e " + str( n_equil) + " -o " + str(n_prod) + " -f " + str(filepath) +
-        " --e_co " + str(e_co) + " --s_co " + str(s_co) +
-        " --e_me " + str(e_me) + " --s_me " + str(s_me) 
+        " -e " + str( n_equil) + " -o " + str(n_prod) + " -f " + str(filepath)#  +
+        # " --e_co " + str(e_co) + " --s_co " + str(s_co) +
+        # " --e_me " + str(e_me) + " --s_me " + str(s_me) 
     )
     
     subprocess.run(shellString, shell = True)

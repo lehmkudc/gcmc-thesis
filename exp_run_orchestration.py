@@ -6,8 +6,8 @@ import pandas as pd
 from multiprocessing import Pool, cpu_count
 
 
-exp_filepath = "mixture_grid/mixtures1.csv"
-data_filepath = "mixture_grid/mixtures1/"
+exp_filepath = "mixture_grid/mondejar_et_al.csv"
+data_filepath = "mixture_grid/mondejar_et_al/"
 run_script = "only_result.py"
 
 # print( "Available CPU:", cpu_count() )

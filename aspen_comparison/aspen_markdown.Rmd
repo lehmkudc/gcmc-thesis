@@ -6,7 +6,7 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE)
 ```
 
 # Overview
@@ -50,8 +50,9 @@ aspenData <- aspenData  %>%
     yco = round( `Mole fraction CO2`, 1),
     t_c = round( `Temperature (K)` - 273.15, 1 ),
     p_bar = round(`Pressure (N/sqm)`*10**(-5), 1),
-    rhoco = yco*`Density (kg/cum)`/44.01,
-    rhome = (1-yco)*`Density (kg/cum)`/16.04,
+    mfrac_co = ( 44.01*yco )/( 44.01*yco + 16.04*(1-yco)),
+    rhoco = mfrac_co*`Density (kg/cum)`/44.01,
+    rhome = (1-mfrac_co)*`Density (kg/cum)`/16.04,
     source = "Aspen"
   )
 
@@ -400,7 +401,7 @@ ggplot( comparisonData ) +
   )
 ```
 
-Contrary to the single component comparison results, the CO2 partial densities show no significant bias away from experimental Aspen results. However, there is a clear discrepancy in the CH4 results where the simulation is significantly under-representing the density. The issue gets worse the less CH4 in the system there is. This provides some evidence away from CO2 LJ parameters being the critical issue, although the issue does get worse with more CO2.
+Contrary to the single component comparison results, the CO2 partial densities show no significant bias away from experimental Aspen results.
 
 ## Density Aspen vs PR
 
@@ -622,7 +623,7 @@ As indicated in the Aspen vs PR comparison, the PR and gcmc are in relative acco
 
 Next steps:
 
-1.  Investigate PR as an EOS when comparing to gas mixtures in this range
+1.  Investigate PR as an EOS when comparing to gas mixtures in this range. This includes debugging the code and modifying parameter values such as Kappa
 2.  Find more mixture data to compare to, ideally with the full range of y, T, P represented
 3.  Investigate other Lennard-Jones parameters and pick the best.
 
@@ -644,16 +645,55 @@ ggplot( comparisonDataFull ) +
 
 ggplot( 
     comparisonDataFull %>%
-      filter( yco == 0.5 ) 
+      filter( yco == 0.5 ) %>%
+      filter( rhoco_pr < 50)
   ) + 
   geom_point(
-    aes( x = p_bar, y = rhoco, col = t_c)
+    aes( x = p_bar, y = rhoco, col = t_c, shape = "Aspen")
   ) +
   geom_point(
-    aes(x = p_bar, y = rhocov, col = t_c ), shape = 5
+    aes(x = p_bar, y = rhocov, col = t_c, shape = "gcmc" )
   ) +
+  geom_point(
+    aes(x = p_bar, y = rhoco_pr, col = t_c, shape = "PR" )
+  ) +
+  scale_shape_manual( values = c("Aspen"=19, "gcmc"=6, "PR"=4)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  ggtitle("Partial Density of CO2 comparison across methods (Yco = 0.5)") +
+  labs(
+    y = "Density CO2 [mol/L]",
+    x = "Reservoir Pressure [bar]",
+    col = "Temperature [C]",
+    shape = "Source"
+  )
   
+
+ggplot( 
+    comparisonDataFull %>%
+      filter( yco == 0.5 ) %>%
+      filter( rhoco_pr < 50)
+  ) + 
+  geom_point(
+    aes( x = p_bar, y = rhome, col = t_c, shape = "Aspen")
+  ) +
+  geom_point(
+    aes(x = p_bar, y = rhomev, col = t_c, shape = "gcmc" )
+  ) +
+  geom_point(
+    aes(x = p_bar, y = rhome_pr, col = t_c, shape = "PR" )
+  ) +
+  scale_shape_manual( values = c("Aspen"=19, "gcmc"=6, "PR"=4)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  ggtitle("Partial Density of CH4 comparison across methods (Yco = 0.5)") +
+  labs(
+    y = "Density CH4 [mol/L]",
+    x = "Reservoir Pressure [bar]",
+    col = "Temperature [C]",
+    shape = "Source"
+  )
 ```
+
+As seen in the smaller dataset examples, Aspen mixture data is biased heavily away from the calculated PR data. It's likely that the PR equation as used for our reservoir chemical potential calculation is flawed in some way for the range of Temperatures and Pressures we're studying.
 
 ## Mole Fraction
 
@@ -872,7 +912,7 @@ ggplot( comparisonDataFull ) +
 
 
 
-ggplot( comparisonData ) +
+ggplot( comparisonDataFull ) +
   geom_point(
     aes( x = rhome, y = rhomev, col = (1-yco) ),
     alpha = 1

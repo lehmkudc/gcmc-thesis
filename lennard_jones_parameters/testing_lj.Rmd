@@ -6,7 +6,7 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE)
 ```
 
 # Overview
@@ -290,6 +290,8 @@ ggplot() +
     )
   )
 ```
+
+At least compared to other
 
 ```{r}
 filteredData <- allRunData %>%

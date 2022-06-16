@@ -1,0 +1,30 @@
+---
+title: "Mixture Grid"
+author: "Marina"
+date: '2022-06-11'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+# Overview
+
+For non-adsorption systems, this simulation study should replicate the behavior
+of the reservoir due to there being no systematic difference. However as we've
+seen from other experiments our data does contain significant bias especially
+for CO2 in our system. Any biases found between simulations in a bulk gas and
+an otherwise empty unit cell will propagate to further experiments causing a
+percieved behavior of adsorption beyond what is expected from nature. This is
+because our judgement of the separation of gases would be comparing the reservoir
+to the system, which we already know to be suspect without adsorption.
+
+However, one way we can mitigate this is to capture a grid of gas mixtures
+in our simulation and use those as our "reservoir" properties when determining
+separation. For example, if we're simulating a yco = 0.5 gas at 45C and 100bar
+and want to evaluate the effect of adsorption onto a carbon system, we can either
+compare our observed system to the reservoir properties, or we can compare our
+observed system to the observed system without the carbon adsorbent. While not
+completely sufficient in mitigating bias from our simulation, I imagine it
+would help. 

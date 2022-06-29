@@ -1,0 +1,1134 @@
+---
+title: "single_component"
+author: "Marina"
+date: '2022-06-19'
+output: 
+  html_document: 
+    toc: yes
+    theme: cerulean
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+# Simple Examples: Single Components
+
+## Overview
+
+While this simulation software is designed for adsorption systems, the simplest test to confirm that gas particles are simulated as expected is by modeling a pure-component gas in an otherwise empty unit cell. This should result in the same properties as those observed by that same gas in nature. NIST thermophysical property data for Pure Component Carbon Monoxide and Methane is used for this comparison in addition to the Peng-Robinson Equation of State.
+
+To do this, we simulated pure component CO2 and CH4 across a range of temperatures (30, 45, 60) *C and Pressures (5 bar to 200 bar). For each yco, T, P, we performed 3 replicates.
+
+While assessing the accuracy of the model, we'll also explore some properties and potential sources of variance that result from this method.
+
+## Setup
+
+### Starting Packages & Libraries
+
+For this analysis, I've collected a series of NIST thermophysical Properties from the NIST website [source!] for pure CO2 and CH4 at a range of pressures [5 through 200 bar] and Temperatures [30, 45, and 60 C]. This range was chosen to capture both gas and supercritical states of both gas species. 
+
+I also ran the gcmc simulation with the same species across the same range of temperatures and pressures, with 3 replicates per y, P, T. For each run, the following properties were used
+
+s_box = 34 A
+N_steps = 1000
+N_cycles = 1000
+
+[LJ Parameters]
+
+The results are located in the ./single_component_individual_runs/lower_p/ subdirectory of the project codebase.
+
+```{r}
+suppressPackageStartupMessages({
+  library( tidyverse )
+  library( data.table )
+  library(glue)
+})
+
+source( "reference_data/pr.R")
+
+n_moves <- 1000
+
+
+combineRunData <- function( dataDir, expListFile ){
+  
+  dataFiles <- list.files(dataDir)
+  expList <- fread(  expListFile )
+  
+  # all the raw data
+  rawDataTable <- lapply( dataFiles, function(file){
+    
+    exp <- str_remove( file, pattern = ".csv")
+    
+    expInputs <- expList %>%
+      filter( exp == !!exp )
+    
+    expOutputs <- fread( paste0( dataDir, file ) )
+    
+    
+    expData <- bind_cols(expInputs, expOutputs) %>%
+      mutate( iter = 1:n() )
+    
+    return( expData )
+    
+  }) %>% bind_rows
+  
+  return( rawDataTable )
+}
+
+
+```
+
+### GCMC Run Data
+
+```{r}
+homeDir <-"./single_component_individual_runs/lower_p/"
+
+co2_30 <- combineRunData(
+  paste0(homeDir, "only_co2_30/"),
+  paste0( homeDir, "only_co2_30.csv" )
+)
+
+co2_45 <- combineRunData(
+  paste0(homeDir, "only_co2_45/"),
+  paste0( homeDir, "only_co2_45.csv" )
+)
+
+co2_60 <- combineRunData(
+  paste0(homeDir, "only_co2_60/"),
+  paste0( homeDir, "only_co2_60.csv" )
+)
+
+allRunDataCO2 <- bind_rows(
+  co2_30, co2_45, co2_60
+) %>%
+  mutate(
+    rhoco = rhocov*10**4/6.02, # mol/L,
+    rhome = 0
+  )
+
+me_30 <- combineRunData(
+  paste0(homeDir, "only_me_30/"),
+  paste0( homeDir, "only_me_30.csv" )
+)
+
+me_45 <- combineRunData(
+  paste0(homeDir, "only_me_45/"),
+  paste0( homeDir, "only_me_45.csv" )
+)
+
+me_60 <- combineRunData(
+  paste0(homeDir, "only_me_60/"),
+  paste0( homeDir, "only_me_60.csv" )
+)
+
+allRunDataMe <- bind_rows(
+  me_30, me_45, me_60
+) %>%
+  mutate(
+    rhome = rhomev*10**4/6.02,  # mol/L,
+    rhoco = 0
+  )
+
+
+R <- 0.0831446261815324 #[L bar/K mol]
+allRunData <-
+  bind_rows(
+    allRunDataCO2, allRunDataMe
+  ) %>%
+  mutate( 
+    source = "GCMC",
+    t_c = as.factor(t_c),
+    Env = Env * R #[J/mol]
+  ) %>%
+  select( exp, yco, p_bar, t_c, Env, Pv, iter, rhoco, rhome, source)
+
+
+
+runResultData <- allRunData %>%
+  filter( iter > 500 ) %>%
+  group_by( yco, p_bar, t_c, exp ) %>%
+  summarize(
+    Pv = mean( Pv ),
+    Env = mean(Env),
+    rhoco = mean( rhoco ),
+    rhome = mean( rhome ),
+    .groups = "keep"
+  ) %>%
+  ungroup() %>%
+  mutate( source = "GCMC")
+
+
+averagedRunData <- allRunData %>%
+  group_by( yco, p_bar, t_c, iter ) %>%
+  summarize(
+    Pv = mean( Pv ),
+    Env = mean( Env ),
+    rhoco = mean( rhoco ),
+    rhome = mean( rhome ),
+    .groups = "keep"
+  ) %>%
+  ungroup() 
+
+
+
+
+```
+
+### Reference Data
+
+```{r}
+nist_co2_30 <- fread('reference_data/c02_30.txt')
+nist_co2_45 <- fread('reference_data/c02_45.txt')
+nist_co2_60 <- fread('reference_data/c02_60.txt')
+
+allNistDataCO2 <- bind_rows(
+  nist_co2_30, nist_co2_45, nist_co2_60
+) %>%
+  mutate(
+    t_c = as.factor(`Temperature (C)`),
+    p_bar = as.integer(`Pressure (bar)`),
+    rhoco = `Density (mol/l)`,
+    rhome = 0,
+    yco = 1
+  )
+
+nist_me_30 <- fread('reference_data/me_30.txt')
+nist_me_45 <- fread('reference_data/me_45.txt')
+nist_me_60 <- fread('reference_data/me_60.txt')
+
+allNistDataMe <- bind_rows(
+  nist_me_30, nist_me_45, nist_me_60
+) %>%
+  mutate(
+    t_c = as.factor(`Temperature (C)`),
+    p_bar = as.integer(`Pressure (bar)`),
+    rhome = `Density (mol/l)`,
+    rhoco = 0,
+    yco = 0
+  )
+
+allNistData <- bind_rows(
+  allNistDataCO2, allNistDataMe
+) %>%
+  select( yco, p_bar, t_c, rhoco, rhome ) %>%
+  mutate(
+    source = "NIST"
+  )
+  
+
+
+allPrData <- allNistData %>%
+  select( -rhoco, -rhome, -source ) %>%
+  mutate( t_k = as.numeric(levels(t_c))[t_c] + 273.15 ) %>%
+  rowwise() %>%
+  mutate(
+    z_pr = PR_Zmix(p_bar, t_k, yco ),
+    rho_pr = p_bar/(z_pr*R*(t_k)), #[mol/L]
+    rhoco = yco*rho_pr,
+    rhome = (1-yco)*rho_pr,
+    source = "PR"
+  ) %>%
+  select( yco, p_bar, t_c, rhoco, rhome, source)
+
+
+
+allData <- bind_rows(
+  runResultData %>% select( yco, p_bar, t_c, rhoco, rhome, source),
+  allNistData,
+  allPrData
+)
+```
+
+
+## Data Presentation
+
+
+### Simulation Pressure vs Reservor Overall {.tabset}
+
+For a system comprised of only gas particles at a known T and P, that system's derived thermodynamic properties should be the same as that of a reservoir gas of the same species with the same T and P. As such, one easy test for a system's efficacy of modeling a simple system like a gas is to compare a derived pressure of the system with that of the reservoir used to determine the cell's chemical potential. While not a particularly rigorous test for simulation accuracy, it does give an indication of significant biases for systems without an adsorbent. 
+
+For this set of analyses, I compared simulation pressure of completed runs to those of the reservoir. As such for each species I demonstrated this difference with a direct comparison, showing the difference or "error" of the simulation, and the percentage difference (percent error). "Completed Runs" simly have the results of the last 500 cycles averaged together to generate a result.
+
+#### CO2, visual comparison
+```{r}
+
+ggplot( 
+  data = runResultData %>%
+    filter( yco == 1 )
+  ) +
+  geom_point(
+    aes( x = p_bar, y = Pv, col = t_c )
+  ) +
+  scale_color_manual(values = c("blue","purple","red")) +
+  geom_segment(
+    aes(x=5,y=5,xend=200, yend=200)
+  ) +
+  labs(
+    title = glue("Pressure Consistency of Pure CO2 @ Various P"),
+    x = "Pressure of Reservoir [bar]",
+    y = "Pressure of Simulation [bar]",
+    col = "Temp [C]"
+  )
+```
+
+
+#### CO2, difference
+
+```{r}
+ggplot( 
+  data = runResultData %>%
+    filter( yco == 1 ) %>%
+    mutate( pdiff = Pv - p_bar )
+  ) +
+  geom_point(
+    aes( x = p_bar, y = pdiff, col = t_c )
+  ) +
+  scale_color_manual(values = c("blue","purple","red")) +
+  geom_segment(
+    aes(x=5,y=0,xend=200, yend=0)
+  ) +
+  labs(
+    title = glue("Pressure Consistency of Pure CO2 @ Various P"),
+    x = "Pressure of Reservoir [bar]",
+    y = "Pressure Difference [bar]",
+    col = "Temp [C]"
+  )
+```
+#### CO2, difference fraction
+
+```{r}
+ggplot( 
+  data = runResultData %>%
+    filter( yco == 1 ) %>%
+    mutate( pdiff_frac = (Pv - p_bar)/p_bar )
+  ) +
+  geom_point(
+    aes( x = p_bar, y = pdiff_frac, col = t_c )
+  ) +
+  scale_color_manual(values = c("blue","purple","red")) +
+  geom_segment(
+    aes(x=5,y=0,xend=200, yend=0)
+  ) +
+  labs(
+    title = glue("Pressure Consistency of Pure CO2 @ Various P"),
+    x = "Pressure of Reservoir [bar]",
+    y = "Pressure Difference Fraction [bar]",
+    col = "Temp [C]"
+  )
+```
+
+
+#### CH4, visual comparison
+```{r}
+
+ggplot( 
+  data = runResultData %>%
+    filter( yco == 0 )
+  ) +
+  geom_point(
+    aes( x = p_bar, y = Pv, col = t_c )
+  ) +
+  scale_color_manual(values = c("blue","purple","red")) +
+  geom_segment(
+    aes(x=5,y=5,xend=200, yend=200)
+  ) +
+  labs(
+    title = glue("Pressure Consistency of Pure CH4 @ Various P"),
+    x = "Pressure of Reservoir [bar]",
+    y = "Pressure of Simulation [bar]",
+    col = "Temp [C]"
+  )
+```
+
+
+#### CH4, difference
+
+```{r}
+ggplot( 
+  data = runResultData %>%
+    filter( yco == 0 ) %>%
+    mutate( pdiff = Pv - p_bar )
+  ) +
+  geom_point(
+    aes( x = p_bar, y = pdiff, col = t_c )
+  ) +
+  scale_color_manual(values = c("blue","purple","red")) +
+  geom_segment(
+    aes(x=5,y=0,xend=200, yend=0)
+  ) +
+  labs(
+    title = glue("Pressure Consistency of Pure CH4 @ Various P"),
+    x = "Pressure of Reservoir [bar]",
+    y = "Pressure Difference [bar]",
+    col = "Temp [C]"
+  )
+```
+#### CH4, difference fraction
+
+```{r}
+ggplot( 
+  data = runResultData %>%
+    filter( yco == 0 ) %>%
+    mutate( pdiff_frac = (Pv - p_bar)/p_bar )
+  ) +
+  geom_point(
+    aes( x = p_bar, y = pdiff_frac, col = t_c )
+  ) +
+  scale_color_manual(values = c("blue","purple","red")) +
+  geom_segment(
+    aes(x=5,y=0,xend=200, yend=0)
+  ) +
+  labs(
+    title = glue("Pressure Consistency of Pure CH4 @ Various P"),
+    x = "Pressure of Reservoir [bar]",
+    y = "Pressure Difference Fraction [bar]",
+    col = "Temp [C]"
+  )
+```
+### 
+For CO2 we see a "dropoff" of Pressure in the system compared to the reservoir, particularly at pressures higher than 100 bar. This trend is not seen with CH4, although there is a small but consistent bias of pressure lower than that of the reservoir steadily increasing with pressure. For CH4, it is likely that during the range of phase change between gas and supercritical phase, the Lennard Jones forcefield is failing to capture the range of nonideality during that phase change. In addition, the consistent underestimation of pressure implies a significant underestimation in the sum of forces upon the particles in the system according to the virial pressure equation (some number). This could be due to improperly tuned Lennard Jones parameters for the property range in this study, or due to insufficient complexity with modeling a non-spherical body of CO2 compared to CH4.
+
+### Simulation Pressure vs Reservoir Zoomed In {.tabset}
+
+Using the same measure of simulation performance of pressure difference, I'm now showing how that difference manifests over a simulation's runtime. Since simulations like this need ample iterations to "complete" and hopefully converge, graphics like this can demonstrate how long a simulation should be run to receive an accurate (or at least precise) result. Naturally, the larger the unit cell, the more particles within the system, and the more complex the individual computational tasks are, the longer the simulation will take to converge in a time per iteration sense. In addition, the more non-ideal the gas is, the more iterations will be required to converge, such as Low Temperature, Higher Pressure, and higher Density. There are some techniques to deal with this and some have been described in the methods overview.
+
+To generate these charts, a series of results were selected (10, 100, and 200 bar Reservoir) were taken and had their simulation pressure calculations shown over the course of a simulation. 
+
+#### CO2, 10 bar
+
+```{r}
+targetP <- 10 #[bar]
+targetData <- allRunData %>%
+    filter( p_bar == targetP ) %>%
+    filter( yco == 1) %>%
+  mutate( t_c = as.factor( t_c)) %>%
+  group_by( t_c, iter ) %>%
+  summarize( Pv = mean(Pv), .groups= "keep" ) %>%
+  ungroup() %>%
+  filter( iter%%5 == 0)
+
+
+avgRunP <- targetData %>%
+  filter( iter > 500 ) %>%
+  pull( Pv ) %>%
+  mean() %>%
+  round( 2 )
+
+ggplot(
+  data = targetData
+) +
+  geom_point(
+    aes( x = iter, y = Pv, col = t_c ),
+    alpha = 0.4
+  ) +
+  scale_color_manual(values = c("blue","purple","red")) +
+  geom_hline( yintercept = targetP, col = "black", size = 2 )  +
+  geom_label( aes( 0, targetP, label = paste0("Reservoir P: ",targetP, " bar"),
+                   vjust =-1, hjust =0), size = 4) +
+  geom_hline( yintercept = avgRunP, col = "white", size = 2 )  +
+  geom_label( aes( 500, avgRunP, label = paste0("Avg. Run P: ",avgRunP, " bar"),
+                   vjust =-1, hjust =0), size = 4) +
+  labs(
+    title = glue("Simulation Pressure of Pure CO2 @ {targetP} bar Over Simulation"),
+    x = glue("Cycles [{n_moves} steps]"),
+    y = "Pressure of Simulation [bar]",
+    col = "Temp [C]"
+  )
+```
+
+#### CO2, 100 bar
+
+```{r}
+targetP <- 100 #[bar]
+targetData <- allRunData %>%
+    filter( p_bar == targetP ) %>%
+    filter( yco == 1) %>%
+  mutate( t_c = as.factor( t_c)) %>%
+  group_by( t_c, iter ) %>%
+  summarize( Pv = mean(Pv), .groups= "keep" ) %>%
+  ungroup() %>%
+  filter( iter%%5 == 0)
+
+
+avgRunP <- targetData %>%
+  filter( iter > 500 ) %>%
+  pull( Pv ) %>%
+  mean() %>%
+  round( 2 )
+
+ggplot(
+  data = targetData
+) +
+  geom_point(
+    aes( x = iter, y = Pv, col = t_c ),
+    alpha = 0.4
+  ) +
+  scale_color_manual(values = c("blue","purple","red")) +
+  geom_hline( yintercept = targetP, col = "black", size = 2 )  +
+  geom_label( aes( 0, targetP, label = paste0("Reservoir P: ",targetP, " bar"), 
+                   vjust =-1, hjust =0), size = 4) +
+  geom_hline( yintercept = avgRunP, col = "white", size = 2 )  +
+  geom_label( aes( 500, avgRunP, label = paste0("Avg. Run P: ",avgRunP, " bar"), 
+                   vjust =-1, hjust =0), size = 4) +
+  labs(
+    title = glue("Simulation Pressure of Pure CO2 @ {targetP} bar Over Simulation"),
+    x = glue("Cycles [{n_moves} steps]"),
+    y = "Pressure of Simulation [bar]",
+    col = "Temp [C]"
+  )
+```
+
+#### CO2, 200 bar
+
+```{r}
+targetP <- 200 #[bar]
+targetData <- allRunData %>%
+    filter( p_bar == targetP ) %>%
+    filter( yco == 1) %>%
+  mutate( t_c = as.factor( t_c)) %>%
+  group_by( t_c, iter ) %>%
+  summarize( Pv = mean(Pv), .groups= "keep" ) %>%
+  ungroup() %>%
+  filter( iter%%5 == 0)
+
+
+avgRunP <- targetData %>%
+  filter( iter > 500 ) %>%
+  pull( Pv ) %>%
+  mean() %>%
+  round( 2 )
+
+ggplot(
+  data = targetData
+) +
+  geom_point(
+    aes( x = iter, y = Pv, col = t_c ),
+    alpha = 0.4
+  ) +
+  scale_color_manual(values = c("blue","purple","red")) +
+  geom_hline( yintercept = targetP, col = "black", size = 2 )  +
+  geom_label( aes( 0, targetP, label = paste0("Reservoir P: ",targetP, " bar"), 
+                   vjust =-1, hjust =0), size = 4) +
+  geom_hline( yintercept = avgRunP, col = "white", size = 2 )  +
+  geom_label( aes( 500, avgRunP, label = paste0("Avg. Run P: ",avgRunP, " bar"), 
+                   vjust =-1, hjust =0), size = 4) +
+  labs(
+    title = glue("Simulation Pressure of Pure CO2 @ {targetP} bar Over Simulation"),
+    x = glue("Cycles [{n_moves} steps]"),
+    y = "Pressure of Simulation [bar]",
+    col = "Temp [C]"
+  )
+```
+
+#### CH4, 10 bar
+
+```{r}
+targetP <- 10 #[bar]
+targetData <- allRunData %>%
+    filter( p_bar == targetP ) %>%
+    filter( yco == 0 ) %>%
+  mutate( t_c = as.factor( t_c)) %>%
+  group_by( t_c, iter ) %>%
+  summarize( Pv = mean(Pv), .groups= "keep" ) %>%
+  ungroup() %>%
+  filter( iter%%5 == 0)
+
+
+avgRunP <- targetData %>%
+  filter( iter > 500 ) %>%
+  pull( Pv ) %>%
+  mean() %>%
+  round( 2 )
+
+ggplot(
+  data = targetData
+) +
+  geom_point(
+    aes( x = iter, y = Pv, col = t_c ),
+    alpha = 0.4
+  ) +
+  scale_color_manual(values = c("blue","purple","red")) +
+  geom_hline( yintercept = targetP, col = "black", size = 2 )  +
+  geom_label( aes( 0, targetP, label = paste0("Reservoir P: ",targetP, " bar"), 
+                   vjust =-1, hjust =0), size = 4) +
+  geom_hline( yintercept = avgRunP, col = "white", size = 2 )  +
+  geom_label( aes( 500, avgRunP, label = paste0("Avg. Run P: ",avgRunP, " bar"), 
+                   vjust =-1, hjust =0), size = 4) +
+  labs(
+    title = glue("Simulation Pressure of Pure CH4 @ {targetP} bar Over Simulation"),
+    x = glue("Cycles [{n_moves} steps]"),
+    y = "Pressure of Simulation [bar]",
+    col = "Temp [C]"
+  )
+```
+
+#### CH4, 100 bar
+
+```{r}
+targetP <- 100 #[bar]
+targetData <- allRunData %>%
+    filter( p_bar == targetP ) %>%
+    filter( yco == 0 ) %>%
+  mutate( t_c = as.factor( t_c)) %>%
+  group_by( t_c, iter ) %>%
+  summarize( Pv = mean(Pv), .groups= "keep" ) %>%
+  ungroup() %>%
+  filter( iter%%5 == 0)
+
+
+avgRunP <- targetData %>%
+  filter( iter > 500 ) %>%
+  pull( Pv ) %>%
+  mean() %>%
+  round( 2 )
+
+ggplot(
+  data = targetData
+) +
+  geom_point(
+    aes( x = iter, y = Pv, col = t_c ),
+    alpha = 0.4
+  ) +
+  scale_color_manual(values = c("blue","purple","red")) +
+  geom_hline( yintercept = targetP, col = "black", size = 2 )  +
+  geom_label( aes( 0, targetP, label = paste0("Reservoir P: ",targetP, " bar"), 
+                   vjust =-1, hjust =0), size = 4) +
+  geom_hline( yintercept = avgRunP, col = "white", size = 2 )  +
+  geom_label( aes( 500, avgRunP, label = paste0("Avg. Run P: ",avgRunP, " bar"), 
+                   vjust =-1, hjust =0), size = 4) +
+  labs(
+    title = glue("Simulation Pressure of Pure CH4 @ {targetP} bar Over Simulation"),
+    x = glue("Cycles [{n_moves} steps]"),
+    y = "Pressure of Simulation [bar]",
+    col = "Temp [C]"
+  )
+```
+
+#### CH4, 200 bar
+```{r}
+targetP <- 200 #[bar]
+targetData <- allRunData %>%
+    filter( p_bar == targetP ) %>%
+    filter( yco == 0 ) %>%
+  mutate( t_c = as.factor( t_c)) %>%
+  group_by( t_c, iter ) %>%
+  summarize( Pv = mean(Pv), .groups= "keep" ) %>%
+  ungroup() %>%
+  filter( iter%%5 == 0)
+
+
+avgRunP <- targetData %>%
+  filter( iter > 500 ) %>%
+  pull( Pv ) %>%
+  mean() %>%
+  round( 2 )
+
+ggplot(
+  data = targetData
+) +
+  geom_point(
+    aes( x = iter, y = Pv, col = t_c ),
+    alpha = 0.4
+  ) +
+  scale_color_manual(values = c("blue","purple","red")) +
+  geom_hline( yintercept = targetP, col = "black", size = 2 )  +
+  geom_label( aes( 0, targetP, label = paste0("Reservoir P: ",targetP, " bar"), 
+                   vjust =-1, hjust =0), size = 4) +
+  geom_hline( yintercept = avgRunP, col = "white", size = 2 )  +
+  geom_label( aes( 500, avgRunP, label = paste0("Avg. Run P: ",avgRunP, " bar"), 
+                   vjust =-1, hjust =0), size = 4) +
+  labs(
+    title = glue("Simulation Pressure of Pure CH4 @ {targetP} bar Over Simulation"),
+    x = glue("Cycles [{n_moves} steps]"),
+    y = "Pressure of Simulation [bar]",
+    col = "Temp [C]"
+  )
+```
+###
+
+The same consistent shifts are noticeable on a more zoomed-in set of results. One additional characteristic of this presure difference is the bias is more extreme at lower temperatures. This could be due to the higher non-ideality which is failing to be captured by our choice in force field, or due to the system not equilibrating properly. While there doesn't appear to be a significant trend in simulation pressure over the course of a run, there might be other ways to determine equilibration such as Internal Energy.
+
+### Internal Energy {.tabset}
+
+[This section could use some help, given that I still don't know how to relate this "absolute" derivation of chemical potential with something shown in literature calculated from a reference state. Something about how T relates to potential energy within a gas probably]
+
+As is the nature of any thermodynamic system, the trend is towards the lowest energy state possible provided no decrease in universal entropy. As such, it's expected that this system will decrease in energy across iterations until it reaches some sort of minimum, either local or global. As such, it should be a decent metric for determining the "end" of a simulation if it asymptotes to some value. For these analyses, I used the default smoothing algorithm in the ggplot2's package for readability. 
+
+#### CO2, 30C
+
+```{r}
+ggplot(
+  data = averagedRunData %>%
+    filter( yco == 1 ) %>%
+    filter( t_c == 30 ) 
+) + 
+  geom_smooth(
+    aes( x = iter, y = Env, group = p_bar, col = p_bar)
+  )  +
+  labs(
+    title = glue("Simulation Internal Energy of Pure CO2 @ 30C Over Simulation"),
+    col = "Res. P [bar]",
+    y = "Internal Energy [J/mol]",
+    x = glue("Cycles [{n_moves} steps]")
+  )
+```
+
+
+#### CO2, 45C
+
+```{r}
+ggplot(
+  data = averagedRunData %>%
+    filter( yco == 1 ) %>%
+    filter( t_c == 45 )
+) + 
+  geom_smooth(
+    aes( x = iter, y = Env, group = p_bar, col = p_bar)
+  )  +
+  labs(
+    title = glue("Simulation Internal Energy of Pure CO2 @ 45C Over Simulation"),
+    col = "Res. P [bar]",
+    y = "Internal Energy [J/mol]",
+    x = glue("Cycles [{n_moves} steps]")
+  )
+```
+
+
+#### CO2, 60C
+
+```{r}
+ggplot(
+  data = averagedRunData %>%
+    filter( yco == 1 ) %>%
+    filter( t_c == 60 )
+) + 
+  geom_smooth(
+    aes( x = iter, y = Env, group = p_bar, col = p_bar)
+  )  +
+  labs(
+    title = glue("Simulation Internal Energy of Pure CO2 @ 60C Over Simulation"),
+    col = "Res. P [bar]",
+    y = "Internal Energy [J/mol]",
+    x = glue("Cycles [{n_moves} steps]")
+  )
+```
+
+
+#### CH4, 30C
+
+```{r}
+ggplot(
+  data = averagedRunData %>%
+    filter( yco == 0 ) %>%
+    filter( t_c == 30 )
+) + 
+  geom_smooth(
+    aes( x = iter, y = Env, group = p_bar, col = p_bar)
+  )  +
+  labs(
+    title = glue("Simulation Internal Energy of Pure CH4 @ 30C Over Simulation"),
+    col = "Res. P [bar]",
+    y = "Internal Energy [J/mol]",
+    x = glue("Cycles [{n_moves} steps]")
+  )
+```
+
+#### CH4, 45C
+
+```{r}
+ggplot(
+  data = averagedRunData %>%
+    filter( yco == 0 ) %>%
+    filter( t_c == 45 )
+) + 
+  geom_smooth(
+    aes( x = iter, y = Env, group = p_bar, col = p_bar)
+  )  +
+  labs(
+    title = glue("Simulation Internal Energy of Pure CH4 @ 45C Over Simulation"),
+    col = "Res. P [bar]",
+    y = "Internal Energy [J/mol]",
+    x = glue("Cycles [{n_moves} steps]")
+  )
+```
+
+
+#### CH4, 60C
+
+```{r}
+ggplot(
+  data = averagedRunData %>%
+    filter( yco == 0 ) %>%
+    filter( t_c == 60 )
+) + 
+  geom_smooth(
+    aes( x = iter, y = Env, group = p_bar, col = p_bar)
+  )  +
+  labs(
+    title = glue("Simulation Internal Energy of Pure CH4 @ 60C Over Simulation"),
+    col = "Res. P [bar]",
+    y = "Internal Energy [J/mol]",
+    x = glue("Cycles [{n_moves} steps]")
+  )
+```
+
+
+#### CO2, All Results
+
+```{r}
+ggplot(
+  data = runResultData %>%
+    filter( yco == 1 )
+) +
+  geom_point(
+    aes( x= p_bar, y = Env, col = t_c )
+  ) +
+  scale_color_manual(values = c("blue","purple","red")) +
+  labs(
+    title = glue("Internal Energy of Pure CO2"),
+    x = "Pressure of Reservoir [bar]",
+    y = "Internal Energy [J/mol]",
+    col = "Temp [C]"
+  )
+```
+
+#### CH4, All Results
+
+```{r}
+ggplot(
+  data = runResultData %>%
+    filter( yco == 0 )
+) +
+  geom_point(
+    aes( x= p_bar, y = Env, col = t_c )
+  ) +
+  scale_color_manual(values = c("blue","purple","red")) +
+  labs(
+    title = glue("Internal Energy of Pure CH4"),
+    x = "Pressure of Reservoir [bar]",
+    y = "Internal Energy [J/mol]",
+    col = "Temp [C]"
+  )
+```
+###
+
+From these charts I think we can say anecdotally that these systems "equilibrated" after approximately 300 cycles, so for similar studies with these species I'll be using at least that many iterations before collecting run data.
+
+
+### Simulation Pressure {.tabset}
+
+
+#### CO2, 30C
+
+```{r}
+ggplot(
+  data = averagedRunData %>%
+    filter( yco == 1 ) %>%
+    filter( t_c == 30 )
+) + 
+  geom_smooth(
+    aes( x = iter, y = Pv, group = p_bar, col = p_bar),
+  ) + 
+  labs(
+    title = glue("Simulation Pressure of Pure CO2 @ 30C Over Simulation"),
+    col = "Res. P [bar]",
+    y = "Pressure of Simulation [bar]",
+    x = glue("Cycles [{n_moves} steps]")
+  )
+```
+
+
+
+#### CO2, 45C
+
+```{r}
+ggplot(
+  data = averagedRunData %>%
+    filter( yco == 1 ) %>%
+    filter( t_c == 45 )
+) + 
+  geom_smooth(
+    aes( x = iter, y = Pv, group = p_bar, col = p_bar),
+  ) + 
+  labs(
+    title = glue("Simulation Pressure of Pure CO2 @ 45C Over Simulation"),
+    col = "Res. P [bar]",
+    y = "Pressure of Simulation [bar]",
+    x = glue("Cycles [{n_moves} steps]")
+  )
+```
+
+#### CO2, 60C
+
+```{r}
+ggplot(
+  data = averagedRunData %>%
+    filter( yco == 1 ) %>%
+    filter( t_c == 60 )
+) + 
+  geom_smooth(
+    aes( x = iter, y = Pv, group = p_bar, col = p_bar),
+  ) + 
+  labs(
+    title = glue("Simulation Pressure of Pure CO2 @ 60C Over Simulation"),
+    col = "Res. P [bar]",
+    y = "Pressure of Simulation [bar]",
+    x = glue("Cycles [{n_moves} steps]")
+  )
+```
+
+
+#### CH4, 30C
+
+```{r}
+ggplot(
+  data = averagedRunData %>%
+    filter( yco == 0 ) %>%
+    filter( t_c == 30 )
+) + 
+  geom_smooth(
+    aes( x = iter, y = Pv, group = p_bar, col = p_bar),
+  )  + 
+  labs(
+    title = glue("Simulation Pressure of Pure CH4 @ 30C Over Simulation"),
+    col = "Res. P [bar]",
+    y = "Pressure of Simulation [bar]",
+    x = glue("Cycles [{n_moves} steps]")
+  )
+```
+
+#### CH4, 45C
+
+```{r}
+ggplot(
+  data = averagedRunData %>%
+    filter( yco == 0 ) %>%
+    filter( t_c == 45 )
+) + 
+  geom_smooth(
+    aes( x = iter, y = Pv, group = p_bar, col = p_bar),
+  ) + 
+  labs(
+    title = glue("Simulation Pressure of Pure CH4 @ 45C Over Simulation"),
+    col = "Res. P [bar]",
+    y = "Pressure of Simulation [bar]",
+    x = glue("Cycles [{n_moves} steps]")
+  )
+```
+
+
+#### CH4, 60C
+
+```{r}
+ggplot(
+  data = averagedRunData %>%
+    filter( yco == 0 ) %>%
+    filter( t_c == 60 )
+) + 
+  geom_smooth(
+    aes( x = iter, y = Pv, group = p_bar, col = p_bar),
+  ) + 
+  labs(
+    title = glue("Simulation Pressure of Pure CH4 @ 60C Over Simulation"),
+    col = "Res. P [bar]",
+    y = "Pressure of Simulation [bar]",
+    x = glue("Cycles [{n_moves} steps]")
+  )
+```
+
+
+
+### Simulation Density {.tabset}
+
+
+
+#### CO2, 30C
+
+```{r}
+ggplot(
+  data = averagedRunData %>%
+    filter( yco == 1 ) %>%
+    filter( t_c == 30 )
+) + 
+  geom_smooth(
+    aes( x = iter, y = rhoco, group = p_bar, col = p_bar),
+  ) + 
+  labs(
+    title = glue("Simulation Density of Pure CO2 @ 30C Over Simulation"),
+    col = "Res. P [bar]",
+    y = "Molar Volume [mol/L]",
+    x = glue("Cycles [{n_moves} steps]")
+  )
+```
+
+#### CO2, 45C
+```{r}
+ggplot(
+  data = averagedRunData %>%
+    filter( yco == 1 ) %>%
+    filter( t_c == 45 )
+) + 
+  geom_smooth(
+    aes( x = iter, y = rhoco, group = p_bar, col = p_bar),
+  ) + 
+  labs(
+    title = glue("Simulation Density of Pure CO2 @ 45C Over Simulation"),
+    col = "Res. P [bar]",
+    y = "Molar Volume [mol/L]",
+    x = glue("Cycles [{n_moves} steps]")
+  )
+```
+
+#### CO2, 60C
+
+```{r}
+ggplot(
+  data = averagedRunData %>%
+    filter( yco == 1 ) %>%
+    filter( t_c == 60 )
+) + 
+  geom_smooth(
+    aes( x = iter, y = rhoco, group = p_bar, col = p_bar),
+  ) + 
+  labs(
+    title = glue("Simulation Density of Pure CO2 @ 60C Over Simulation"),
+    col = "Res. P [bar]",
+    y = "Molar Volume [mol/L]",
+    x = glue("Cycles [{n_moves} steps]")
+  )
+```
+
+
+#### CH4, 30C
+
+```{r}
+ggplot(
+  data = averagedRunData %>%
+    filter( yco == 0 ) %>%
+    filter( t_c == 30 )
+) + 
+  geom_smooth(
+    aes( x = iter, y = rhome, group = p_bar, col = p_bar),
+  ) + 
+  labs(
+    title = glue("Simulation Density of Pure CH4 @ 30C Over Simulation"),
+    col = "Res. P [bar]",
+    y = "Molar Volume [mol/L]",
+    x = glue("Cycles [{n_moves} steps]")
+  )
+```
+
+#### CH4, 45C
+
+```{r}
+ggplot(
+  data = averagedRunData %>%
+    filter( yco == 0 ) %>%
+    filter( t_c == 45 )
+) + 
+  geom_smooth(
+    aes( x = iter, y = rhome, group = p_bar, col = p_bar),
+  ) + 
+  labs(
+    title = glue("Simulation Density of Pure CH4 @ 45C Over Simulation"),
+    col = "Res. P [bar]",
+    y = "Molar Volume [mol/L]",
+    x = glue("Cycles [{n_moves} steps]")
+  )
+```
+
+
+#### CH4, 60C
+
+```{r}
+ggplot(
+  data = averagedRunData %>%
+    filter( yco == 0 ) %>%
+    filter( t_c == 60 )
+) + 
+  geom_smooth(
+    aes( x = iter, y = rhome, group = p_bar, col = p_bar),
+  ) + 
+  labs(
+    title = glue("Simulation Density of Pure CH4 @ 60C Over Simulation"),
+    col = "Res. P [bar]",
+    y = "Molar Volume [mol/L]",
+    x = glue("Cycles [{n_moves} steps]")
+  )
+```
+
+
+### {-}
+
+
+
+
+
+
+## Comparison with Experimental Data
+
+Now to finally start comparing this simulation to actual data.
+
+```{r}
+ggplot() + 
+  geom_point(
+    data = allData %>% 
+      filter( source == "GCMC") %>%
+      filter( yco == 1),
+    aes(x = p_bar, y = rhoco, col = t_c)
+  ) +
+  geom_line(
+    data = allData %>% 
+      filter( source == "NIST") %>%
+      filter( yco == 1),
+    aes( x = p_bar, y = rhoco, col = t_c, linetype = source )
+  ) +
+  geom_line(
+     data = allData %>% 
+      filter( source == "PR") %>%
+      filter( yco == 1),
+    aes( x = p_bar, y = rhoco, col = t_c, linetype = source )
+  ) + 
+  labs(
+    title = glue("Density Comparison of Pure CO2 From Simulated and Experimental Data"),
+    col = "Temp [C]",
+    y = "Molar Volume [mol/L]",
+    x = glue("Reservoir Pressure [bar]")
+  )
+
+```
+
+For CO2, the density comparisons perform exceptionally poorly between 80 and 130 bar at capturing the phase shift between vapor and supercritical phases. We believe this is due to the Lennard-Jones model mentioned previously. Although this area has a significant bias of underestimating density, other pressures appear to have reasonably accurate density measurements. 
+
+
+```{r}
+ggplot() + 
+  geom_point(
+    data = allData %>% 
+      filter( source == "GCMC") %>%
+      filter( yco == 0),
+    aes(x = p_bar, y = rhome, col = t_c)
+  ) +
+  geom_line(
+    data = allData %>% 
+      filter( source == "NIST") %>%
+      filter( yco == 0),
+    aes( x = p_bar, y = rhome, col = t_c )
+  ) +
+  geom_line(
+     data = allData %>% 
+      filter( source == "PR") %>%
+      filter( yco == 0),
+    aes( x = p_bar, y = rhome, col = t_c ),
+    linetype = "dashed"
+  ) + 
+  labs(
+    title = glue("Density Comparison of Pure CH4 From Simulated and Experimental Data"),
+    col = "Temp [C]",
+    y = "Molar Volume [mol/L]",
+    x = glue("Reservoir Pressure [bar]")
+  )
+```
+
+For CH4, the densities are relatively the same although there is a consistent bias underestimating the density.

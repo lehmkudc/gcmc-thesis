@@ -11,7 +11,11 @@ knitr::opts_chunk$set(echo = FALSE)
 
 # Overview
 
-This experiment is to test the simulation's efficacy at replicating a simple unit cell of a mixture of gases without adsorbents with experimental data. For nature data we're using the back-end experimental data in Aspen thermodynamic simulation software. To set up this experiment we collected a range of y_co, P, and T and performed a GCMC run for each unique set. The Peng Robinson equation of state is also used here for comparison
+This is a test to show markdown updates. Does this even work?
+
+## Summary
+
+This experiment is to test the simulation's efficacy at replicating a simple unit cell of a mixture of gases without adsorbents with experimental data. For nature data we're using the back-end experimental data in Aspen thermodynamic simulation software. To set up this experiment we collected a range of y_co, P, and T and performed a GCMC run for each unique set. The Peng Robinson equation of state is also used here for comparison.
 
 # Setup
 
@@ -24,7 +28,7 @@ suppressPackageStartupMessages({
   library(glue)
 })
 
-getwd()
+# getwd()
 source( "./reference_data/pr.R")
 ```
 

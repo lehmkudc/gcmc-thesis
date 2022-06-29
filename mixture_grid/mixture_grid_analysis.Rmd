@@ -11,20 +11,303 @@ knitr::opts_chunk$set(echo = FALSE)
 
 # Overview
 
-For non-adsorption systems, this simulation study should replicate the behavior
-of the reservoir due to there being no systematic difference. However as we've
-seen from other experiments our data does contain significant bias especially
-for CO2 in our system. Any biases found between simulations in a bulk gas and
-an otherwise empty unit cell will propagate to further experiments causing a
-percieved behavior of adsorption beyond what is expected from nature. This is
-because our judgement of the separation of gases would be comparing the reservoir
-to the system, which we already know to be suspect without adsorption.
+For non-adsorption systems, this simulation study should replicate the behavior of the reservoir due to there being no systematic difference. However as we've seen from other experiments our data does contain significant bias especially for CO2 in our system. Any biases found between simulations in a bulk gas and an otherwise empty unit cell will propagate to further experiments causing a perceived behavior of adsorption beyond what is expected from nature. This is because our judgement of the separation of gases would be comparing the reservoir to the system, which we already know to be suspect without adsorption.
 
-However, one way we can mitigate this is to capture a grid of gas mixtures
-in our simulation and use those as our "reservoir" properties when determining
-separation. For example, if we're simulating a yco = 0.5 gas at 45C and 100bar
-and want to evaluate the effect of adsorption onto a carbon system, we can either
-compare our observed system to the reservoir properties, or we can compare our
-observed system to the observed system without the carbon adsorbent. While not
-completely sufficient in mitigating bias from our simulation, I imagine it
-would help. 
+However, one way we can mitigate this is to capture a grid of gas mixtures in our simulation and use those as our "reservoir" properties when determining separation. For example, if we're simulating a yco = 0.5 gas at 45C and 100bar and want to evaluate the effect of adsorption onto a carbon system, we can either compare our observed system to the reservoir properties, or we can compare our observed system to the observed system without the carbon adsorbent. While not completely sufficient in mitigating bias from our simulation, I imagine it would help.
+
+```{r}
+suppressPackageStartupMessages({
+  library( tidyverse )
+  library( data.table )
+  library(glue)
+})
+
+source( "./reference_data/pr.R")
+```
+
+```{r}
+homeDir <-"./mixture_grid/"
+
+combineRunData <- function( dataDir, expListFile ){
+  
+  dataFiles <- list.files(dataDir)
+  expList <- fread(  expListFile )
+  
+  # all the raw data
+  rawDataTable <- lapply( dataFiles, function(file){
+    
+    exp <- str_remove( file, pattern = ".csv")
+    
+    expInputs <- expList %>%
+      filter( exp == !!exp )
+    
+    expOutputs <- fread( paste0( dataDir, file ) )
+    
+    
+    expData <- bind_cols(expInputs, expOutputs) %>%
+      mutate( iter = 1:n() )
+    
+    return( expData )
+    
+  }) %>% bind_rows
+  
+  return( rawDataTable )
+}
+
+mondejarReferenceData <- fread(paste0(homeDir, 'mondejar_reference.csv')) %>%
+  mutate(
+    exp = 1:n()
+  )
+
+R = 0.0831446261815324 #[L bar/K mol]
+mondejarRunData <- combineRunData(
+  paste0(homeDir, "mondejar_et_al/"),
+  paste0(homeDir, "mondejar_et_al.csv")
+) %>% as.data.table
+
+mondejarCombinedData <- mondejarRunData %>%
+  mutate(
+    rhocov = rhocov*10000/6.02,
+    rhomev = rhomev*10000/6.02
+  ) %>%
+  rowwise() %>%
+  mutate(
+    z_pr = PR_Zmix(p_bar, t_c + 273.15, yco ),
+  ) %>% 
+  ungroup() %>%
+  mutate( 
+    rho_pr = p_bar/(z_pr*R*(t_c+273.15)), #[mol/L]
+    rhoco_pr = yco*rho_pr,
+    rhome_pr = (1-yco)*rho_pr
+  ) %>%
+  select(
+    exp, yco, p_bar, t_c, rhocov, rhomev, Pv, rhoco_pr, rhome_pr
+  ) %>%
+  left_join(
+    mondejarReferenceData, by = c("exp", "yco", "p_bar", "t_c")
+  ) %>%
+  as.data.table
+
+
+
+mondejarRefinedData <- mondejarCombinedData %>% 
+  filter( t_c > 25 ) %>%
+  mutate( t_c = round( t_c ) )
+```
+
+```{r}
+mondejarRefinedData %>%
+  group_by( t_c ) %>%
+  count()
+```
+
+
+```{r}
+ggplot( 
+  data = mondejarRefinedData %>%
+    filter( yco == 0.2 ) 
+    #filter( t_c == 52 )
+) +
+  geom_point( aes( x = p_bar, y = rhocov, col = t_c, group = t_c ) ) +
+  geom_line( aes(x = p_bar, y = rhoco, col = t_c, group = t_c)) +
+  geom_line( aes(x = p_bar, y = rhoco_pr, col = t_c, group = t_c), linetype = "dashed")
+
+
+ggplot( 
+  data = mondejarRefinedData %>%
+    filter( yco == 0.4 ) 
+    #filter( t_c == 52 )
+) +
+  geom_point( aes( x = p_bar, y = rhocov, col = t_c, group = t_c ) ) +
+  geom_line( aes(x = p_bar, y = rhoco, col = t_c, group = t_c))
+
+ggplot( 
+  data = mondejarRefinedData %>%
+    filter( yco == 0.6 ) 
+    #filter( t_c == 52 )
+) +
+  geom_point( aes( x = p_bar, y = rhocov, col = t_c, group = t_c ) ) +
+  geom_line( aes(x = p_bar, y = rhoco, col = t_c, group = t_c))
+
+
+
+ggplot( 
+  data = mondejarRefinedData %>%
+    filter( yco == 0.2 ) 
+    #filter( t_c == 52 )
+) +
+  geom_point( aes( x = p_bar, y = rhomev, col = t_c, group = t_c ) ) +
+  geom_line( aes(x = p_bar, y = rhome, col = t_c, group = t_c))
+
+ggplot( 
+  data = mondejarRefinedData %>%
+    filter( yco == 0.4 ) 
+    #filter( t_c == 52 )
+) +
+  geom_point( aes( x = p_bar, y = rhomev, col = t_c, group = t_c ) ) +
+  geom_line( aes(x = p_bar, y = rhome, col = t_c, group = t_c))
+
+ggplot( 
+  data = mondejarRefinedData %>%
+    filter( yco == 0.6 ) 
+    #filter( t_c == 52 )
+) +
+  geom_point( aes( x = p_bar, y = rhomev, col = t_c, group = t_c ) ) +
+  geom_line( aes(x = p_bar, y = rhome, col = t_c, group = t_c))
+```
+```{r}
+ggplot( 
+  data = mondejarRefinedData %>%
+    filter( yco == 0.2 ) 
+    #filter( t_c == 52 )
+) +
+  geom_point( aes( x = p_bar, y = rhocov-rhoco, col = t_c, group = t_c ) ) +
+  geom_line( aes( x = p_bar, y = rhoco_pr-rhoco, col = t_c, group = t_c ) )
+
+ggplot( 
+  data = mondejarRefinedData %>%
+    filter( yco == 0.4 ) 
+    #filter( t_c == 52 )
+) +
+  geom_point( aes( x = p_bar, y = rhocov-rhoco, col = t_c, group = t_c ) )
+
+ggplot( 
+  data = mondejarRefinedData %>%
+    filter( yco == 0.6 ) 
+    #filter( t_c == 52 )
+) +
+  geom_point( aes( x = p_bar, y = rhocov-rhoco, col = t_c, group = t_c ) )
+
+ggplot( 
+  data = mondejarRefinedData %>%
+    filter( yco == 0.2 ) 
+    #filter( t_c == 52 )
+) +
+  geom_point( aes( x = p_bar, y = rhomev-rhome, col = t_c, group = t_c ) )
+
+ggplot( 
+  data = mondejarRefinedData %>%
+    filter( yco == 0.4 ) 
+    #filter( t_c == 52 )
+) +
+  geom_point( aes( x = p_bar, y = rhomev-rhome, col = t_c, group = t_c ) )
+
+ggplot( 
+  data = mondejarRefinedData %>%
+    filter( yco == 0.6 ) 
+    #filter( t_c == 52 )
+) +
+  geom_point( aes( x = p_bar, y = rhomev-rhome, col = t_c, group = t_c ) )
+```
+
+```{r}
+ggplot( 
+  data = mondejarRefinedData
+    #filter( t_c == 52 )
+) +
+  geom_point( aes( x = p_bar, y = rhocov/(rhocov+rhomev), col = t_c, group = t_c ) )
+```
+
+
+```{r}
+ggplot( 
+  data = mondejarRefinedData %>%
+    #filter( yco == 0.2 ) 
+    filter( t_c == 27 )
+) +
+  geom_point( aes( x = p_bar, y = rhocov, col = yco, group = yco ) ) +
+  geom_line( aes( x = p_bar, y = rhoco, col = yco, group = yco ) ) +
+  geom_line( aes( x = p_bar, y = rhoco_pr, col = yco, group = yco ), linetype = "dashed" )
+
+ggplot( 
+  data = mondejarRefinedData %>%
+    #filter( yco == 0.2 ) 
+    filter( t_c == 52 )
+) +
+  geom_point( aes( x = p_bar, y = rhocov, col = yco, group = yco ) ) +
+  geom_line( aes( x = p_bar, y = rhoco, col = yco, group = yco ) ) +
+  geom_line( aes( x = p_bar, y = rhoco_pr, col = yco, group = yco ), linetype = "dashed" )
+
+ggplot( 
+  data = mondejarRefinedData %>%
+    #filter( yco == 0.2 ) 
+    filter( t_c == 77 )
+) +
+  geom_point( aes( x = p_bar, y = rhocov, col = yco, group = yco ) ) +
+  geom_line( aes( x = p_bar, y = rhoco, col = yco, group = yco ) ) +
+  geom_line( aes( x = p_bar, y = rhoco_pr, col = yco, group = yco ), linetype = "dashed" )
+
+
+ggplot( 
+  data = mondejarRefinedData %>%
+    #filter( yco == 0.2 ) 
+    filter( t_c == 102 )
+) +
+  geom_point( aes( x = p_bar, y = rhocov, col = yco, group = yco ) ) +
+  geom_line( aes( x = p_bar, y = rhoco, col = yco, group = yco ) ) +
+  geom_line( aes( x = p_bar, y = rhoco_pr, col = yco, group = yco ), linetype = "dashed" )
+
+
+ggplot( 
+  data = mondejarRefinedData %>%
+    #filter( yco == 0.2 ) 
+    filter( t_c == 127 )
+) +
+  geom_point( aes( x = p_bar, y = rhocov, col = yco, group = yco ) ) +
+  geom_line( aes( x = p_bar, y = rhoco, col = yco, group = yco ) ) +
+  geom_line( aes( x = p_bar, y = rhoco_pr, col = yco, group = yco ), linetype = "dashed" )
+
+
+
+ggplot( 
+  data = mondejarRefinedData %>%
+    #filter( yco == 0.2 ) 
+    filter( t_c == 27 )
+) +
+  geom_point( aes( x = p_bar, y = rhomev, col = yco, group = yco ) ) +
+  geom_line( aes( x = p_bar, y = rhome, col = yco, group = yco ) ) +
+  geom_line( aes( x = p_bar, y = rhome_pr, col = yco, group = yco ), linetype = "dashed" )
+
+ggplot( 
+  data = mondejarRefinedData %>%
+    #filter( yco == 0.2 ) 
+    filter( t_c == 52 )
+) +
+  geom_point( aes( x = p_bar, y = rhomev, col = yco, group = yco ) ) +
+  geom_line( aes( x = p_bar, y = rhome, col = yco, group = yco ) ) +
+  geom_line( aes( x = p_bar, y = rhome_pr, col = yco, group = yco ), linetype = "dashed" )
+
+ggplot( 
+  data = mondejarRefinedData %>%
+    #filter( yco == 0.2 ) 
+    filter( t_c == 77 )
+) +
+  geom_point( aes( x = p_bar, y = rhomev, col = yco, group = yco ) ) +
+  geom_line( aes( x = p_bar, y = rhome, col = yco, group = yco ) ) +
+  geom_line( aes( x = p_bar, y = rhome_pr, col = yco, group = yco ), linetype = "dashed" )
+
+ggplot( 
+  data = mondejarRefinedData %>%
+    #filter( yco == 0.2 ) 
+    filter( t_c == 102 )
+) +
+  geom_point( aes( x = p_bar, y = rhomev, col = yco, group = yco ) ) +
+  geom_line( aes( x = p_bar, y = rhome, col = yco, group = yco ) ) +
+  geom_line( aes( x = p_bar, y = rhome_pr, col = yco, group = yco ), linetype = "dashed" )
+
+ggplot( 
+  data = mondejarRefinedData %>%
+    #filter( yco == 0.2 ) 
+    filter( t_c == 127 )
+) +
+  geom_point( aes( x = p_bar, y = rhomev, col = yco, group = yco ) ) +
+  geom_line( aes( x = p_bar, y = rhome, col = yco, group = yco ) ) +
+  geom_line( aes( x = p_bar, y = rhome_pr, col = yco, group = yco ), linetype = "dashed" )
+```
+
+
+
+```{r}
+
+```
+

@@ -13,6 +13,8 @@ knitr::opts_chunk$set(echo = FALSE)
 
 One prevailing theory for why our simulations are showing significant bias away from experimental data and Peng-Robinson is that our Lennard-Jones force field isn't adequately modeling the behavior of gas particles in an otherwise empty unit cell. While a basic Lennard Jones force field using the equation used above is suitable for many basic simulations, it assumes that the particles are spherical with no polar effects. In the case of CO2, that assumption fails and may be what's causing our issues. While we won't be incorporating more advanced force fields, we can try a few Lennard Jones parameters to see which ones work best at this temperature and pressure range to alleviate this problem somewhat.
 
+To perform this experiment, I obtained 4 sets of Lennard-Jones parameters and tested each at pressures between 5 and 200 bar, 45\*C, and with pure component gases CO2 and CH4.
+
 ## Load the Data
 
 ```{r}
@@ -220,7 +222,7 @@ lj_3 <- combineRunData(
   )
 
 
-lj_1 %>% head()
+lj_1 %>% glimpse()
 ```
 
 ```{r}

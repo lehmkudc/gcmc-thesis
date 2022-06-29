@@ -101,7 +101,9 @@ bind_rows(
     mfrac_co = ( 44.01*yco )/( 44.01*yco + 16.04*(1-yco)), 
     rhoco = mfrac_co*density/44.01, #[mol/L]
     rhome = (1-mfrac_co)*density/16.04
-  )
+  ) %>%
+  select( -Tk, -P, -density, -mfrac_co) %>%
+  write_csv( "mixture_grid/mondejar_reference.csv")
 
 
 
@@ -124,8 +126,7 @@ bind_rows(
     n_equil = as.integer(1000000),
     n_prod  = as.integer(100000)
   ) %>%
-  select( exp, yco, p_bar, t_c, s_box, n_moves, n_equil, n_prod ) %>%
-  write_csv( "mixture_grid/mondejar_et_al.csv")
+  select( exp, yco, p_bar, t_c, s_box, n_moves, n_equil, n_prod ) 
 
 
 

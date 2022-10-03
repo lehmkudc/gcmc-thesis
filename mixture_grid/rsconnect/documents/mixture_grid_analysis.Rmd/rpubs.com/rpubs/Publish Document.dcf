@@ -1,0 +1,11 @@
+name: Publish Document
+title:
+username:
+account: rpubs
+server: rpubs.com
+hostUrl: rpubs.com
+appId: https://api.rpubs.com/api/v1/document/920502/9c831660cda241a9b029ec5e27216ea4
+bundleId: https://api.rpubs.com/api/v1/document/920502/9c831660cda241a9b029ec5e27216ea4
+url: http://rpubs.com/lehmkudc/920502
+when: 1657597892.48236
+lastSyncTime: 1657597892.48236

@@ -1,5 +1,5 @@
 ---
-title: "Aspen Comparison Analysis"
+title: "Lennard Jones Comparison Analysis"
 author: "Marina"
 date: '2022-05-15'
 output: html_document
@@ -84,7 +84,7 @@ allNistDataCO2 <- bind_rows(
   )
 
 
-allNistDataCO2 %>% head()
+# allNistDataCO2 %>% head()
 
 nist_me_30 <- fread('reference_data/me_30.txt')
 nist_me_45 <- fread('reference_data/me_45.txt')
@@ -101,7 +101,7 @@ allNistDataMe <- bind_rows(
   )
 
 
-allNistDataMe %>% head()
+# allNistDataMe %>% head()
 
 
 allNistData <- bind_rows(
@@ -112,7 +112,7 @@ allNistData <- bind_rows(
     source = "NIST"
   )
   
-allNistData %>% head()
+# allNistData %>% head()
 ```
 
 ## Original Lennard-Jones (0)
@@ -139,7 +139,7 @@ co2_lj_0 <- bind_rows(
   co2_30, co2_45, co2_60
 )
 
-co2_lj_0 %>% head()
+# co2_lj_0 %>% head()
 
 
 me_30 <- combineRunData(
@@ -161,7 +161,7 @@ me_lj_0 <- bind_rows(
   me_30, me_45, me_60
 )
 
-me_lj_0 %>% head()
+# me_lj_0 %>% head()
 
 lj_0 <- bind_rows(
   co2_lj_0, me_lj_0
@@ -180,7 +180,7 @@ lj_0 <- bind_rows(
     .groups = "keep"
   )
 
-lj_0 %>% head()
+# lj_0 %>% head()
 ```
 
 ## Lennard-Jones 1 thru 3
@@ -222,7 +222,7 @@ lj_3 <- combineRunData(
   )
 
 
-lj_1 %>% glimpse()
+# lj_1 %>% glimpse()
 ```
 
 ```{r}
@@ -234,9 +234,9 @@ testing_lj <- combineRunData(
   select( exp, yco, p_bar, t_c, rhocov, rhomev)
 
 
-testing_lj %>%
-  filter( yco == 0) %>%
-  filter( t_c == 45 )
+# testing_lj %>%
+#   filter( yco == 0) %>%
+#   filter( t_c == 45 )
 ```
 
 ## Peng-Robinson
@@ -261,8 +261,8 @@ allRunData <- bind_rows(
 ) %>%
   select( yco, t_c, p_bar, rhoco, rhome, source )
 
-allRunData %>%
-  head()
+# allRunData %>%
+#   head()
 ```
 
 ```{r}
@@ -279,6 +279,12 @@ ggplot() +
       col = source,
       group = source
     )
+  ) +
+  labs(
+    title = glue("Isotherms of Pure CO2 at 45C"),
+    y = "Molar Volume [mol/L]",
+    x = "Pressure [bar]",
+    col = "Temp [C]"
   )
 
 ggplot() +
@@ -290,10 +296,16 @@ ggplot() +
       col = source,
       group = source
     )
+  ) +
+  labs(
+    title = glue("Isotherms of Pure CO2 at 45C with Smoothed Lines"),
+    y = "Molar Volume [mol/L]",
+    x = "Pressure [bar]",
+    col = "Temp [C]"
   )
 ```
 
-At least compared to other
+At least compared to other LJ parameters tested, LJ0 (the sigma and epsilon used for CO2 in this study) is the closest to capturing the non-ideal region, although it's far from perfect. Optimizing for a LJ parameter set for this project based on our studied temperature range is out of scope for this study.
 
 ```{r}
 filteredData <- allRunData %>%
@@ -310,6 +322,12 @@ ggplot() +
       group = source
     ),
     alpha = 0.5
+  ) +
+  labs(
+    title = glue("Isotherms of pure CH4 at 45C"),
+    y = "Molar Colume [mol/L]",
+    x = "Pressure [bar]",
+    col = "Temp [C]"
   )
 
 ggplot() +
@@ -322,5 +340,13 @@ ggplot() +
       group = source
     ),
     alpha = 0.5
+  ) +
+  labs(
+    title = glue("Isotherms of pure CH4 at 45C with Smoothed Lines"),
+    y = "Molar Colume [mol/L]",
+    x = "Pressure [bar]",
+    col = "Temp [C]"
   )
 ```
+
+As with CO2, the LJ parameters chosen for this study are the "closest" to those found in experimental data, but still demonstrates a consistent drift at higher pressures.

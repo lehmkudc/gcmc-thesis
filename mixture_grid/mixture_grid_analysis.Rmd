@@ -1,5 +1,5 @@
 ---
-title: "Mixture Grid"
+title: "Mixture Grid Analysis (Mondejar)"
 author: "Marina"
 date: '2022-06-11'
 output: html_document
@@ -14,6 +14,7 @@ knitr::opts_chunk$set(echo = FALSE)
 For non-adsorption systems, this simulation study should replicate the behavior of the reservoir due to there being no systematic difference. However as we've seen from other experiments our data does contain significant bias especially for CO2 in our system. Any biases found between simulations in a bulk gas and an otherwise empty unit cell will propagate to further experiments causing a perceived behavior of adsorption beyond what is expected from nature. This is because our judgement of the separation of gases would be comparing the reservoir to the system, which we already know to be suspect without adsorption.
 
 However, one way we can mitigate this is to capture a grid of gas mixtures in our simulation and use those as our "reservoir" properties when determining separation. For example, if we're simulating a yco = 0.5 gas at 45C and 100bar and want to evaluate the effect of adsorption onto a carbon system, we can either compare our observed system to the reservoir properties, or we can compare our observed system to the observed system without the carbon adsorbent. While not completely sufficient in mitigating bias from our simulation, I imagine it would help.
+
 
 ```{r}
 suppressPackageStartupMessages({
@@ -88,19 +89,37 @@ mondejarCombinedData <- mondejarRunData %>%
   ) %>%
   as.data.table
 
-
+mondejarCombinedData %>%
+  select( exp, yco, t_c, p_bar, Pv, everything() ) %>%
+  mutate(
+    mondejar = paste0( rhoco, "_split_", rhome ),
+    peng_robinson = paste0( rhoco_pr, "_split_", rhome_pr ),
+    gcmc = paste0(rhocov, "_split_", rhomev)
+  ) %>%
+  select( -rhoco, -rhome, -rhoco_pr, -rhome_pr, -rhocov , -rhomev) %>%
+  pivot_longer( c(mondejar, peng_robinson, gcmc), "source" ) %>%
+  glimpse()
 
 mondejarRefinedData <- mondejarCombinedData %>% 
   filter( t_c > 25 ) %>%
   mutate( t_c = round( t_c ) )
 ```
 
+
+# The Experimental Dataset
 ```{r}
-mondejarRefinedData %>%
-  group_by( t_c ) %>%
-  count()
+# mondejarRefinedData %>%
+#   group_by( t_c ) %>%
+#   count()
 ```
 
+## Isotherms Across Temperatures {.tabset}
+
+These isotherms describe the density of a particular species is expected to be
+adsorbed onto the adsorbent given a Reservoir gas at Y/T/P. The posted density
+is not the overall density of the gas, only a particular species. 
+
+### CO2 in 20% CO2
 
 ```{r}
 ggplot( 
@@ -110,16 +129,41 @@ ggplot(
 ) +
   geom_point( aes( x = p_bar, y = rhocov, col = t_c, group = t_c ) ) +
   geom_line( aes(x = p_bar, y = rhoco, col = t_c, group = t_c)) +
-  geom_line( aes(x = p_bar, y = rhoco_pr, col = t_c, group = t_c), linetype = "dashed")
+  geom_line( aes(x = p_bar, y = rhoco_pr, col = t_c, group = t_c), linetype = "dashed") +
+  scale_color_gradient(low = "blue",high = "red") +
+  labs(
+    title = "CO2 Isotherm of Gas Mixture @ 20% CO2 Reservoir",
+    x = "Reservoir Pressure [bar]",
+    y = "Density CO2 [mol/L]",
+    col = "Temp [C]"
+  )
 
+```
 
+### CO2 in 40% CO2
+
+```{r}
 ggplot( 
   data = mondejarRefinedData %>%
     filter( yco == 0.4 ) 
     #filter( t_c == 52 )
 ) +
   geom_point( aes( x = p_bar, y = rhocov, col = t_c, group = t_c ) ) +
-  geom_line( aes(x = p_bar, y = rhoco, col = t_c, group = t_c))
+  geom_line( aes(x = p_bar, y = rhoco, col = t_c, group = t_c))+
+  geom_line( aes(x = p_bar, y = rhoco_pr, col = t_c, group = t_c), linetype = "dashed") +
+  scale_color_gradient(low = "blue",high = "red") +
+  labs(
+    title = "CO2 Isotherm of Gas Mixture @ 40% CO2 Reservoir",
+    x = "Reservoir Pressure [bar]",
+    y = "Density CO2 [mol/L]",
+    col = "Temp [C]"
+  )
+
+```
+
+### CO2 in 60% CO2
+
+```{r}
 
 ggplot( 
   data = mondejarRefinedData %>%
@@ -127,9 +171,21 @@ ggplot(
     #filter( t_c == 52 )
 ) +
   geom_point( aes( x = p_bar, y = rhocov, col = t_c, group = t_c ) ) +
-  geom_line( aes(x = p_bar, y = rhoco, col = t_c, group = t_c))
+  geom_line( aes(x = p_bar, y = rhoco, col = t_c, group = t_c)) +
+  scale_color_gradient(low = "blue",high = "red") +
+  labs(
+    title = "CO2 Isotherm of Gas Mixture @ 60% CO2 Reservoir",
+    x = "Reservoir Pressure [bar]",
+    y = "Density CO2 [mol/L]",
+    col = "Temp [C]"
+  )
+
+```
 
 
+### CH4 in 20% CO2
+
+```{r}
 
 ggplot( 
   data = mondejarRefinedData %>%
@@ -137,7 +193,20 @@ ggplot(
     #filter( t_c == 52 )
 ) +
   geom_point( aes( x = p_bar, y = rhomev, col = t_c, group = t_c ) ) +
-  geom_line( aes(x = p_bar, y = rhome, col = t_c, group = t_c))
+  geom_line( aes(x = p_bar, y = rhome, col = t_c, group = t_c)) +
+  scale_color_gradient(low = "blue",high = "red") +
+  labs(
+    title = "CH4 Isotherm of Gas Mixture @ 20% CO2 Reservoir",
+    x = "Reservoir Pressure [bar]",
+    y = "Density CH4 [mol/L]",
+    col = "Temp [C]"
+  )
+
+```
+
+### CH4 in 40% CO2
+
+```{r}
 
 ggplot( 
   data = mondejarRefinedData %>%
@@ -145,16 +214,38 @@ ggplot(
     #filter( t_c == 52 )
 ) +
   geom_point( aes( x = p_bar, y = rhomev, col = t_c, group = t_c ) ) +
-  geom_line( aes(x = p_bar, y = rhome, col = t_c, group = t_c))
+  geom_line( aes(x = p_bar, y = rhome, col = t_c, group = t_c)) +
+  labs(
+    title = "CH4 Isotherm of Gas Mixture @ 40% CO2 Reservoir",
+    x = "Reservoir Pressure [bar]",
+    y = "Density CH4 [mol/L]",
+    col = "Temp [C]"
+  )
 
+```
+
+### CH4 in 60% CO2
+
+```{r}
 ggplot( 
   data = mondejarRefinedData %>%
     filter( yco == 0.6 ) 
     #filter( t_c == 52 )
 ) +
   geom_point( aes( x = p_bar, y = rhomev, col = t_c, group = t_c ) ) +
-  geom_line( aes(x = p_bar, y = rhome, col = t_c, group = t_c))
+  geom_line( aes(x = p_bar, y = rhome, col = t_c, group = t_c)) +
+  labs(
+    title = "CH4 Isotherm of Gas Mixture @ 60% CO2 Reservoir",
+    x = "Reservoir Pressure [bar]",
+    y = "Density CH4 [mol/L]",
+    col = "Temp [C]"
+  )
 ```
+
+## Mole Fraction Changes Across Temperatures {.tabset}
+
+### CO2 in 20% CO2
+
 ```{r}
 ggplot( 
   data = mondejarRefinedData %>%
@@ -164,6 +255,11 @@ ggplot(
   geom_point( aes( x = p_bar, y = rhocov-rhoco, col = t_c, group = t_c ) ) +
   geom_line( aes( x = p_bar, y = rhoco_pr-rhoco, col = t_c, group = t_c ) )
 
+```
+
+### CO2 in 40% CO2
+
+```{r}
 ggplot( 
   data = mondejarRefinedData %>%
     filter( yco == 0.4 ) 
@@ -171,6 +267,11 @@ ggplot(
 ) +
   geom_point( aes( x = p_bar, y = rhocov-rhoco, col = t_c, group = t_c ) )
 
+```
+
+### CO2 in 60% CO2
+
+```{r}
 ggplot( 
   data = mondejarRefinedData %>%
     filter( yco == 0.6 ) 
@@ -178,6 +279,11 @@ ggplot(
 ) +
   geom_point( aes( x = p_bar, y = rhocov-rhoco, col = t_c, group = t_c ) )
 
+```
+
+### CH4 in 20% CO2
+
+```{r}
 ggplot( 
   data = mondejarRefinedData %>%
     filter( yco == 0.2 ) 
@@ -185,13 +291,22 @@ ggplot(
 ) +
   geom_point( aes( x = p_bar, y = rhomev-rhome, col = t_c, group = t_c ) )
 
+```
+
+### CH4 in 40% CO2
+
+```{r}
 ggplot( 
   data = mondejarRefinedData %>%
     filter( yco == 0.4 ) 
     #filter( t_c == 52 )
 ) +
   geom_point( aes( x = p_bar, y = rhomev-rhome, col = t_c, group = t_c ) )
+```
 
+### CH4 in 60% CO2
+
+```{r}
 ggplot( 
   data = mondejarRefinedData %>%
     filter( yco == 0.6 ) 
@@ -199,6 +314,9 @@ ggplot(
 ) +
   geom_point( aes( x = p_bar, y = rhomev-rhome, col = t_c, group = t_c ) )
 ```
+
+## Mole Fraction
+
 
 ```{r}
 ggplot( 
@@ -208,7 +326,6 @@ ggplot(
   geom_point( aes( x = p_bar, y = rhocov/(rhocov+rhomev), col = t_c, group = t_c ) )
 ```
 
-
 ```{r}
 ggplot( 
   data = mondejarRefinedData %>%
@@ -305,9 +422,6 @@ ggplot(
   geom_line( aes( x = p_bar, y = rhome_pr, col = yco, group = yco ), linetype = "dashed" )
 ```
 
-
-
 ```{r}
 
 ```
-

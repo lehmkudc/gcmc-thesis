@@ -19,6 +19,10 @@ parser.add_argument("--e_co", action = "store", dest="e_co",type=float, default 
 parser.add_argument("--s_co", action = "store", dest="s_co",type=float, default = 3.615)
 parser.add_argument("--e_me", action = "store", dest="e_me",type=float, default = 147.9)
 parser.add_argument("--s_me", action = "store", dest="s_me",type=float, default = 3.73)
+parser.add_argument("-c", "--sf", action = "store", dest="sf",type=bool, default = False)
+parser.add_argument("-d", "--del_sf", action = "store", dest="del_sf",type=float, default = 3.35)
+parser.add_argument("-h", "--rho_sf", action = "store", dest="rho_sf",type=float, default = 0.114)
+parser.add_argument("-w", "--w", action = "store", dest="w",type=float, default = 19)
 args = parser.parse_args()
 
 
@@ -42,12 +46,12 @@ fco, fme = PR_Fugacity( P_res/10**5, T, yco )
 fco = fco*10**5
 fme = fme*10**5
 
-del_sf = "Nothing"#3.35 #[A]
-rho_sf = "Nothing"#0.114 #[A^-3]
-W = "Nothing"#5*3.8 #[A] relative to diameter of methane 3.80A
-sf = False
 mega_verbose = False
 
+sf = args.sf
+del_sf = args.del_sf #[A]
+rho_sf = args.rho_sf #[A^-3]
+W = args.w #[A] relative to diameter of methane 3.80A
 
 
 e_c = 28.0 # eps over kb[K] # Activated is 89.44

@@ -41,17 +41,6 @@ def run_single( exp_list, i):
     return()
     #return( output )
 
-# if __name__ == '__main__':
-#     experiments = pd.read_csv(exp_filepath)
-    
-#     process_list = []
-#     for i in range(experiments.shape[0]):
-#         p =  Process(target= run_single, args = (experiments,i))
-#         p.start()
-#         process_list.append(p)
-    
-#     for process in process_list:
-#         process.join()
         
 if __name__ == '__main__':
     experiments = pd.read_csv(exp_filepath)

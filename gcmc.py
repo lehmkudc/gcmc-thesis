@@ -377,7 +377,7 @@ def U_Tot():
             FT = FT + fi
             
     if (sf == True):
-        print( "Uh Oh")
+        # print( "Uh Oh")
         # CO2 with SF
         for j in range( 0, Nco):
             z = Zco[j]

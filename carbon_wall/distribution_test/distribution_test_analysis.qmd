@@ -1,0 +1,68 @@
+---
+title: "Distribution Test Analysis"
+format: html
+editor: visual
+---
+
+# Setup
+
+```{r}
+suppressPackageStartupMessages({
+  library(tidyverse)
+  library(ggridges)
+})
+```
+
+```{r}
+
+exp_list <- read_csv("./carbon_wall/distribution_test/distribution_test_exp.csv")
+
+read_csv("./carbon_wall/distribution_test/gas/1.csv")
+
+```
+
+```{r}
+
+resultFilenames <- list.files(path = "carbon_wall/distribution_test/gas/", pattern = "\\d.csv")
+
+runResults <- lapply( resultFilenames, function(filename){
+  read_csv(paste0("carbon_wall/distribution_test/gas/", filename),show_col_types = FALSE)
+}) |>
+  bind_rows()
+
+
+coDistFilenames <- list.files(path = "carbon_wall/distribution_test/gas/", pattern = "\\d_co.csv")
+
+coDistResults <- lapply( coDistFilenames, function(filename){
+  read_csv(paste0("carbon_wall/distribution_test/gas/", filename),show_col_types = FALSE) |>
+    mutate(exp = str_replace(filename,pattern = "_co.csv", replacement = "") )
+}) |>
+  bind_rows() |>
+  mutate( exp = as.integer(exp))
+
+meDistFilenames <- list.files(path = "carbon_wall/distribution_test/gas/", pattern = "\\d_me.csv")
+
+meDistResults <- lapply( meDistFilenames, function(filename){
+  read_csv(paste0("carbon_wall/distribution_test/gas/", filename),show_col_types = FALSE) |>
+    mutate(exp = str_replace(filename,pattern = "_me.csv", replacement = "") )
+}) |>
+  bind_rows() |>
+  mutate( exp = as.integer(exp))
+
+```
+
+```{r}
+exps <- nrow( runResults )
+
+lapply(1:exps,function(i){
+  coDist <- coDistResult |>
+    
+})
+
+```
+
+```{r}
+
+
+
+```

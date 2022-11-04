@@ -7,15 +7,15 @@ exec(open("gcmc.py").read())
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-y", "--yco", action = "store", dest="yco",type=float, default = 0.5)
-parser.add_argument("-p", "--p_bar", action = "store", dest="p_bar",type=float, default = 20)
+parser.add_argument("-p", "--p_bar", action = "store", dest="p_bar",type=float, default = 10)
 parser.add_argument("-t", "--t_c", action = "store", dest="t_c",type=float, default = 45)
-parser.add_argument("-s", "--s_box", action = "store", dest="s_box",type=float, default = 50)
-parser.add_argument("-m", "--n_moves", action = "store", dest="n_moves",type=int, default = 10000)
-parser.add_argument("-e", "--n_equil", action = "store", dest="n_equil",type=int, default = 5000000)
-parser.add_argument("-o", "--n_prod", action = "store", dest="n_prod",type=int, default = 1000000)
+parser.add_argument("-s", "--s_box", action = "store", dest="s_box",type=float, default = 100)
+parser.add_argument("-m", "--n_moves", action = "store", dest="n_moves",type=int, default = 100)
+parser.add_argument("-e", "--n_equil", action = "store", dest="n_equil",type=int, default = 50000)
+parser.add_argument("-o", "--n_prod", action = "store", dest="n_prod",type=int, default = 10000)
 parser.add_argument("-r", "--row", action = "store", dest="row",type=int, default = 0)
-parser.add_argument("-f", "--filepath", action = "store", dest="filepath",type=str, default="default")
-parser.add_argument("-c", "--sf", action = "store", dest="sf",type=bool, default = False)
+parser.add_argument("-f", "--filepath", action = "store", dest="filepath",type=str, default="./carbon_wall/distribution_test/example")
+parser.add_argument("-c", "--sf", action = "store", dest="sf",type=bool, default = True)
 parser.add_argument("-d", "--del_sf", action = "store", dest="del_sf",type=float, default = 3.35)
 parser.add_argument("--rho_sf", action = "store", dest="rho_sf",type=float, default = 0.114)
 parser.add_argument("-w", "--w", action = "store", dest="w",type=float, default = 19)
@@ -88,8 +88,6 @@ N_prod = int( np.round( n_prod/N_moves) )
 
 t0 = time()
 rhocov,rhomev,Env,Pv,Ncov, Nmev = mc_run(verbose = True)
-
-print( rhocov[0] )
 tf = time()
 
 
@@ -105,4 +103,23 @@ output_me['Xme'] = np.array(Xme)[:Nme]
 output_me['Yme'] = np.array(Yme)[:Nme]
 output_me['Zme'] = np.array(Zme)[:Nme]
 
-output_me.to_csv( filepath + "_co.csv", index = False )
+output_me.to_csv( filepath + "_me.csv", index = False )
+
+output = pd.DataFrame()
+output['placeholder'] = [1] # Needed so dataframe actually adds column data
+output['rhocov'] = rhocov.mean()
+output['rhomev'] = rhomev.mean()
+output['Env'] = Env.mean()
+output['Pv'] = Pv.mean()
+output['Ncov'] = Ncov.mean()
+output['Nmev'] = Nmev.mean()
+output['rhocov_s'] = rhocov.std()
+output['rhomev_s'] = rhomev.std()
+output['Env_s'] = Env.std()
+output['Pv_s'] = Pv.std()
+output['Ncov_s'] = Ncov.std()
+output['Nmev_s'] = Nmev.std()
+output['time'] = tf - t0
+
+output.to_csv( filepath + ".csv", index = False)
+

@@ -4,7 +4,7 @@ save_data_on_exit = True
 save_history = True
 save_non_project_files = False
 project_type = 'empty-project-type'
-recent_files = ['exp_run_orchestration.py', 'single_component_individual_runs\\initial_tests\\analysis.py', 'gcmc.py', 'only_result.py', 'one_run.py', 'carbon_wall\\distribution_test\\distribution_runs.py']
+recent_files = ['exp_run_orchestration.py', 'carbon_wall\\distribution_test\\distribution_runs.py', 'carbon_wall\\distribution_test\\distribution_test_exp.csv']
 
 [main]
 version = 0.2.0

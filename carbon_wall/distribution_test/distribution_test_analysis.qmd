@@ -9,7 +9,7 @@ editor: visual
 ```{r}
 suppressPackageStartupMessages({
   library(tidyverse)
-  library(ggridges)
+  library(ggplot2)
 })
 ```
 
@@ -26,9 +26,13 @@ read_csv("./carbon_wall/distribution_test/gas/1.csv")
 resultFilenames <- list.files(path = "carbon_wall/distribution_test/gas/", pattern = "\\d.csv")
 
 runResults <- lapply( resultFilenames, function(filename){
-  read_csv(paste0("carbon_wall/distribution_test/gas/", filename),show_col_types = FALSE)
+  resultTable <- read_csv(paste0("carbon_wall/distribution_test/gas/", filename),show_col_types = FALSE)
+  exp_id = str_replace( filename, ".csv", "")
+
+  resultTable |>
+    mutate( exp = as.integer(exp_id) )
 }) |>
-  bind_rows()
+  bind_rows() 
 
 
 coDistFilenames <- list.files(path = "carbon_wall/distribution_test/gas/", pattern = "\\d_co.csv")
@@ -53,16 +57,108 @@ meDistResults <- lapply( meDistFilenames, function(filename){
 
 ```{r}
 exps <- nrow( runResults )
-
-lapply(1:exps,function(i){
-  coDist <- coDistResult |>
-    
+densities <- lapply(1:exps, function(i){
+  coDist <- coDistResults |>
+    filter( i == exp) |> 
+    pull( Zco ) |> 
+    hist( plot=FALSE ) 
+  
+  output <- coDist$density 
+  names( output ) <- coDist$mids
+  return( output)
 })
+
+
+distributionSummary <- do.call(cbind, lapply(densities |> 
+  bind_rows() , summary)) |> 
+  t() |> 
+  as.data.frame() |> 
+  rownames_to_column("midpoint") |>
+  mutate( midpoint = as.numeric(midpoint))
+
+ggplot(data = distributionSummary, aes(x = midpoint)) +
+  geom_point(aes( y = Mean)) +
+  ylim( c(0,0.02) ) +
+  geom_line(aes(y = `1st Qu.`)) + 
+  geom_line(aes(y = `3rd Qu.`))
+```
+
+```{r}
+
+joinedCoDistResults <- coDistResults |> 
+  left_join(exp_list, by = "exp") |>
+  left_join( runResults, by = "exp")
+
+
+lapply( c(0, 20, 30, 40), function(iW){
+  groupDist <- joinedCoDistResults |> 
+    filter( W == iW)
+  
+  bound <- case_when(
+    iW == 0 ~ 100,
+    TRUE ~ iW
+  )
+  ggplot( data = groupDist ) +
+    geom_density(aes(x = Zco, color = exp, group = exp), bounds = c(0,bound))
+})
+
 
 ```
 
 ```{r}
 
+lapply( c(0, 20, 30, 40), function(iW){
+  groupDist <- joinedCoDistResults |> 
+    filter( W == iW )
+  
+  exps <- groupDist |> 
+    pull( exp ) |> 
+    unique()
+  
+  densities <- lapply(exps, function(i){
+    coDist <- groupDist |>
+      filter( i == exp) |> 
+      pull( Zco ) |> 
+      hist( plot=FALSE ) 
+    
+    output <- coDist$density 
+    names( output ) <- coDist$mids
+    return( output)
+  })
+    
+  distributionSummary <- do.call(
+      cbind, lapply(densities |> bind_rows(), summary
+    )) |> 
+    t() |> 
+    as.data.frame() |> 
+    rownames_to_column("midpoint") |>
+    mutate( midpoint = as.numeric(midpoint))
+  
+  ggplot(data = distributionSummary, aes(x = midpoint)) +
+    geom_point(aes( y = Mean)) +
+    geom_line(aes(y = `1st Qu.`)) + 
+    geom_line(aes(y = `3rd Qu.`))
+})
+            
 
+```
 
+```{r}
+groupedHists <- lapply( c(0, 20, 30, 40), function(iW){
+  groupHist <- joinedCoDistResults |> 
+    filter( W == iW ) |> 
+    pull( Zco ) |> 
+    hist( plot = FALSE )
+  
+  data.frame(
+    counts = groupHist$counts,
+    mid_percent = round( (groupHist$mids)/max( groupHist$breaks ), 2 ),
+    W = iW
+  )
+}) |> 
+  bind_rows()
+    
+
+ggplot( data = groupedHists, aes(x = mid_percent) ) +
+  geom_line( aes(y = counts, color = W, group = W))
 ```

@@ -2,12 +2,13 @@ import subprocess
 import pandas as pd
 #import numpy as np
 #import sys
-#import os
+import os
+from time import time
 from multiprocessing import Pool, cpu_count
 
 
 exp_filepath = "carbon_wall/distribution_test/distribution_test_exp.csv"
-data_filepath = "carbon_wall/distribution_test/gas/"
+data_filepath = "carbon_wall/distribution_test/gas"
 run_script = "carbon_wall/distribution_test/distribution_runs.py"
 
 # print( "Available CPU:", cpu_count() )
@@ -23,6 +24,8 @@ def run_single( exp_list, i):
     filepath = data_filepath + "/" + str(exp_list.exp[i])
     sf = exp_list.sf[i]
     W = exp_list.W[i]
+    print( "sf:")
+    print( sf )
     #e_co = int( exp_list.e_co[i] )
     #s_co = int( exp_list.s_co[i] )
     #e_me = int( exp_list.e_me[i] )
@@ -37,13 +40,18 @@ def run_single( exp_list, i):
         " --sf " + str(sf) + " --w " + str(W)
     )
     
-    subprocess.run(shellString, shell = True)
+    t0 = time()
+    processOutput = subprocess.run(shellString, shell = True, text=True, stdout=subprocess.PIPE)
+    tf = time()
     
-    print( "Run " + str( i ) + " complete!")
+    runtime = round( (tf - t0)/60, 2 )
     
-    return()
+    return( "Run " + str( i ) + " complete in " + str(runtime) + " mins!" )
     #return( output )
-
+    
+    
+def print_output(result):
+    print( result )
         
 if __name__ == '__main__':
     experiments = pd.read_csv(exp_filepath)
@@ -51,10 +59,16 @@ if __name__ == '__main__':
     pool = Pool(processes = cpu_count()-1)
 
     for i in range(experiments.shape[0]):
-        pool.apply_async(run_single, args=(experiments,i))
+        pool.apply_async(run_single, args=(experiments,i),callback=print_output)
         
     pool.close()
     pool.join()
+
+#if __name__ == '__main__':
+#    experiments = pd.read_csv(exp_filepath)
+#    runOutput = run_single( experiments,  4 )
+#    print( runOutput.stdout )
+
 
 
 print( "Done!")

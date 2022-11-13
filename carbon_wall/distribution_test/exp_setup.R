@@ -6,12 +6,12 @@ yco <- 0.5
 p_bar <- 10 #bar
 t_c <- 45 #C
 s_box <- 100 #A
-n_moves <- 1000
-n_equil <- 50000
-n_prod <- 10000
+n_moves <- 100
+n_equil <- 10000
+n_prod <- 5000
 reps <- 10
 
-sf <- c("False", "True", "True", "True")
+sf <- c(0,1,1,1)
 W <- c(0, 20, 30, 40)
 
 

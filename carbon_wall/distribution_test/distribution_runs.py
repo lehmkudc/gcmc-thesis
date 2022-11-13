@@ -15,7 +15,7 @@ parser.add_argument("-e", "--n_equil", action = "store", dest="n_equil",type=int
 parser.add_argument("-o", "--n_prod", action = "store", dest="n_prod",type=int, default = 10000)
 parser.add_argument("-r", "--row", action = "store", dest="row",type=int, default = 0)
 parser.add_argument("-f", "--filepath", action = "store", dest="filepath",type=str, default="./carbon_wall/distribution_test/example")
-parser.add_argument("-c", "--sf", action = "store", dest="sf",type=bool, default = True)
+parser.add_argument("-c", "--sf", action = "store", dest="sf",type=int, default = False)
 parser.add_argument("-d", "--del_sf", action = "store", dest="del_sf",type=float, default = 3.35)
 parser.add_argument("--rho_sf", action = "store", dest="rho_sf",type=float, default = 0.114)
 parser.add_argument("-w", "--w", action = "store", dest="w",type=float, default = 19)
@@ -40,7 +40,7 @@ fme = fme*10**5
 
 mega_verbose = False
 
-sf = args.sf
+sf = args.sf == 1
 del_sf = args.del_sf #[A]
 rho_sf = args.rho_sf #[A^-3]
 W = args.w #[A] relative to diameter of methane 3.80A

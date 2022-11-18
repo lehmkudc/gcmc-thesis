@@ -24,8 +24,6 @@ def run_single( exp_list, i):
     filepath = data_filepath + "/" + str(exp_list.exp[i])
     sf = exp_list.sf[i]
     W = exp_list.W[i]
-    print( "sf:")
-    print( sf )
     #e_co = int( exp_list.e_co[i] )
     #s_co = int( exp_list.s_co[i] )
     #e_me = int( exp_list.e_me[i] )

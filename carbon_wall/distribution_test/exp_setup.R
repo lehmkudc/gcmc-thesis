@@ -6,9 +6,9 @@ yco <- 0.5
 p_bar <- 100 #bar
 t_c <- 45 #C
 s_box <- 100 #A
-n_moves <- 100
-n_equil <- 100000
-n_prod <- 50000
+n_moves <- 1000
+n_equil <- 1000000
+n_prod <- 100000
 reps <- 10
 
 sf <- c(0,1,1,1)

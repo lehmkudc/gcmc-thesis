@@ -10,7 +10,6 @@ editor: visual
 suppressPackageStartupMessages({
   library(tidyverse)
   library(ggplot2)
-  library(quarto)
 })
 ```
 
@@ -289,5 +288,5 @@ ggplot(data = onlyEndResults) +
 
 
 ggplot(data = onlyEndResults) +
-  geom_point( aes(x = W, y = Env))
+  geom_point( aes(x = W, y = Pv))
 ```

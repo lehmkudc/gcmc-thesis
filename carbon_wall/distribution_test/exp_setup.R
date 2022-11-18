@@ -3,7 +3,7 @@ suppressPackageStartupMessages({
 })
 
 yco <- 0.5
-p_bar <- 10 #bar
+p_bar <- 100 #bar
 t_c <- 45 #C
 s_box <- 100 #A
 n_moves <- 100

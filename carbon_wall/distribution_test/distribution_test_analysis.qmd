@@ -162,3 +162,131 @@ groupedHists <- lapply( c(0, 20, 30, 40), function(iW){
 ggplot( data = groupedHists, aes(x = mid_percent) ) +
   geom_line( aes(y = counts, color = W, group = W))
 ```
+
+```{r}
+
+joinedMeDistResults <- meDistResults |> 
+  left_join(exp_list, by = "exp") |>
+  left_join( runResults, by = "exp")
+
+
+lapply( c(0, 20, 30, 40), function(iW){
+  groupDist <- joinedMeDistResults |> 
+    filter( W == iW)
+  
+  bound <- case_when(
+    iW == 0 ~ 100,
+    TRUE ~ iW
+  )
+  ggplot( data = groupDist ) +
+    geom_density(aes(x = Zme, color = exp, group = exp), bounds = c(0,bound))
+})
+```
+
+```{r}
+lapply( c(0, 20, 30, 40), function(iW){
+  groupDist <- joinedMeDistResults |> 
+    filter( W == iW )
+  
+  exps <- groupDist |> 
+    pull( exp ) |> 
+    unique()
+  
+  densities <- lapply(exps, function(i){
+    meDist <- groupDist |>
+      filter( i == exp) |> 
+      pull( Zme ) |> 
+      hist( plot=FALSE ) 
+    
+    output <- meDist$density 
+    names( output ) <- meDist$mids
+    return( output)
+  })
+    
+  distributionSummary <- do.call(
+      cbind, lapply(densities |> bind_rows(), summary
+    )) |> 
+    t() |> 
+    as.data.frame() |> 
+    rownames_to_column("midpoint") |>
+    mutate( midpoint = as.numeric(midpoint))
+  
+  ggplot(data = distributionSummary, aes(x = midpoint)) +
+    geom_point(aes( y = Mean)) +
+    geom_line(aes(y = `1st Qu.`)) + 
+    geom_line(aes(y = `3rd Qu.`))
+})
+```
+
+```{r}
+lapply( c(0, 20, 30, 40), function(iW){
+  groupDist <- joinedMeDistResults |> 
+    filter( W == iW )
+  
+  exps <- groupDist |> 
+    pull( exp ) |> 
+    unique()
+  
+  densities <- lapply(exps, function(i){
+    meDist <- groupDist |>
+      filter( i == exp) |> 
+      pull( Zme ) |> 
+      hist( plot=FALSE ) 
+    
+    output <- meDist$density 
+    names( output ) <- meDist$mids
+    return( output)
+  })
+    
+  distributionSummary <- do.call(
+      cbind, lapply(densities |> bind_rows(), summary
+    )) |> 
+    t() |> 
+    as.data.frame() |> 
+    rownames_to_column("midpoint") |>
+    mutate( midpoint = as.numeric(midpoint))
+  
+  ggplot(data = distributionSummary, aes(x = midpoint)) +
+    geom_point(aes( y = Mean)) +
+    geom_line(aes(y = `1st Qu.`)) + 
+    geom_line(aes(y = `3rd Qu.`))
+})
+```
+
+```{r}
+groupedHists <- lapply( c(0, 20, 30, 40), function(iW){
+  groupHist <- joinedMeDistResults |> 
+    filter( W == iW ) |> 
+    pull( Zme ) |> 
+    hist( plot = FALSE )
+  
+  data.frame(
+    counts = groupHist$counts,
+    mid_percent = round( (groupHist$mids)/max( groupHist$breaks ), 2 ),
+    W = iW
+  )
+}) |> 
+  bind_rows()
+    
+
+ggplot( data = groupedHists, aes(x = mid_percent) ) +
+  geom_line( aes(y = counts, color = W, group = W))
+```
+
+```{r}
+onlyEndResults <- runResults |> 
+  left_join(exp_list, by = "exp")
+
+
+
+ggplot(data = onlyEndResults) +
+  geom_point( aes(x = W, y = Ncov/(Ncov+Nmev)))
+
+
+ggplot(data = onlyEndResults) +
+  geom_point( aes(x = W, y = Env))
+
+
+ggplot(data = onlyEndResults) +
+  geom_point( aes(x = W, y = Env))
+```

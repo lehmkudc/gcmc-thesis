@@ -17,7 +17,6 @@ suppressPackageStartupMessages({
 
 exp_list <- read_csv("./carbon_wall/distribution_test/distribution_test_exp.csv")
 
-read_csv("./carbon_wall/distribution_test/gas/1.csv")
 
 ```
 

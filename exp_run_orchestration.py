@@ -7,9 +7,9 @@ from time import time
 from multiprocessing import Pool, cpu_count
 
 
-exp_filepath = "carbon_wall/distribution_test/distribution_test_exp.csv"
-data_filepath = "carbon_wall/distribution_test/gas"
-run_script = "carbon_wall/distribution_test/distribution_runs.py"
+exp_filepath = "carbon_wall/separation_test/separation_exp_list.csv"
+data_filepath = "carbon_wall/separation_test/separation_data"
+run_script = "one_run.py"
 
 # print( "Available CPU:", cpu_count() )
 
@@ -57,6 +57,7 @@ if __name__ == '__main__':
     pool = Pool(processes = cpu_count()-1)
 
     for i in range(experiments.shape[0]):
+    #for i in range(5):
         pool.apply_async(run_single, args=(experiments,i),callback=print_output)
         
     pool.close()

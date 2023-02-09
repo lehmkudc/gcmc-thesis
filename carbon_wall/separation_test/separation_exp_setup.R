@@ -59,7 +59,8 @@ bind_rows(
   mutate(
     exp = 1:n()
   ) |> 
-  write_csv("./carbon_wall/separation_test/separation_exp_list.csv")
+  filter( exp > 201 ) |>
+  write_csv("./carbon_wall/separation_test/separation_exp_list2.csv")
 
 
 

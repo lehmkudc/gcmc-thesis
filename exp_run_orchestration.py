@@ -7,7 +7,7 @@ from time import time
 from multiprocessing import Pool, cpu_count
 
 
-exp_filepath = "carbon_wall/separation_test/separation_exp_list.csv"
+exp_filepath = "carbon_wall/separation_test/separation_exp_list2.csv"
 data_filepath = "carbon_wall/separation_test/separation_data"
 run_script = "one_run.py"
 
